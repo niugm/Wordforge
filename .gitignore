@@ -8,10 +8,11 @@ dist-ssr/
 .pnpm-store/
 
 # --- Tauri / Rust ---
-src-tauri/target/
-src-tauri/Cargo.lock
-src-tauri/gen/schemas/
-src-tauri/WixTools/
+# Match src-tauri at any depth (root or subdir like wordforge/src-tauri/).
+# NOTE: For binary apps Cargo.lock SHOULD be committed; do not ignore it.
+**/src-tauri/target/
+**/src-tauri/gen/schemas/
+**/src-tauri/WixTools/
 
 # --- IDE / OS ---
 .vscode/*
