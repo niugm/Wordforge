@@ -150,6 +150,9 @@
 .ProseMirror blockquote {
   @apply border-l-4 border-muted pl-4 italic text-muted-foreground my-3;
 }
+.ProseMirror u {
+  text-decoration: underline;
+}
 .ProseMirror code {
   @apply rounded bg-muted px-1.5 py-0.5 text-sm font-mono;
 }

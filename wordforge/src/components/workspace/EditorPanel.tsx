@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import { Underline } from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EditorToolbar } from "@/components/workspace/EditorToolbar";
 import { useChapter, useChapterContent, useUpdateChapterContent } from "@/hooks/useChapters";
 import { cn } from "@/lib/utils";
 import type { Chapter, ChapterStatus } from "@/types/db";
@@ -87,7 +89,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit, CharacterCount.configure({})],
+    extensions: [StarterKit, Underline, CharacterCount.configure({})],
     content: parseInitialContent(initialContent),
     autofocus: "end",
     editorProps: {
@@ -150,6 +152,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
         <span className="ml-auto text-xs text-muted-foreground">{wordCount} 字</span>
         <SaveIndicator status={saveStatus} />
       </div>
+      <EditorToolbar editor={editor} />
       <div className="flex-1 overflow-auto">
         <EditorContent editor={editor} />
       </div>
