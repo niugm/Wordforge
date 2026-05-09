@@ -9,6 +9,21 @@ export interface Project {
   archived: number;
 }
 
+export type ChapterStatus = "draft" | "revising" | "done";
+
+export interface Chapter {
+  id: string;
+  projectId: string;
+  parentId: string | null;
+  sort: number;
+  title: string;
+  summary: string | null;
+  wordCount: number;
+  status: ChapterStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AppErrorPayload {
   code: string;
   message: string;

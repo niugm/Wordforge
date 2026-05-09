@@ -32,6 +32,16 @@ pub fn run() {
             commands::projects::rename_project,
             commands::projects::archive_project,
             commands::projects::delete_project,
+            commands::chapters::list_chapters,
+            commands::chapters::get_chapter,
+            commands::chapters::get_chapter_content,
+            commands::chapters::update_chapter_content,
+            commands::chapters::create_chapter,
+            commands::chapters::rename_chapter,
+            commands::chapters::set_chapter_status,
+            commands::chapters::move_chapter,
+            commands::chapters::reorder_chapters,
+            commands::chapters::delete_chapter,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

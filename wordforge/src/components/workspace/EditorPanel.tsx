@@ -1,19 +1,192 @@
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
+import { CharacterCount } from "@tiptap/extension-character-count";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useChapter, useChapterContent, useUpdateChapterContent } from "@/hooks/useChapters";
+import { cn } from "@/lib/utils";
+import type { Chapter, ChapterStatus } from "@/types/db";
+
+const STATUS_META: Record<
+  ChapterStatus,
+  { label: string; variant: "outline" | "secondary" | "default" }
+> = {
+  draft: { label: "草稿", variant: "outline" },
+  revising: { label: "修订中", variant: "secondary" },
+  done: { label: "已完成", variant: "default" },
+};
 
 export function EditorPanel() {
+  const { id } = useParams<{ id: string }>();
+  const chapterId = id ?? null;
+
+  if (!chapterId) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex flex-1 items-center justify-center px-8 py-12">
+          <div className="max-w-prose text-center text-sm text-muted-foreground">
+            <p>未选章节</p>
+            <p className="mt-2 text-xs">从左侧"章节"面板选择一章，或点 + 新建。</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <ChapterLoader chapterId={chapterId} />;
+}
+
+function ChapterLoader({ chapterId }: { chapterId: string }) {
+  const chapter = useChapter(chapterId);
+  const content = useChapterContent(chapterId);
+
+  if (chapter.error || content.error) {
+    const err = chapter.error ?? content.error;
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="text-center text-sm text-destructive">
+          <AlertCircle className="mx-auto h-5 w-5" />
+          <p className="mt-2">加载失败：{err instanceof Error ? err.message : String(err)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!chapter.data || content.data === undefined) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        加载中...
+      </div>
+    );
+  }
+
+  return <ChapterEditor key={chapterId} chapter={chapter.data} initialContent={content.data} />;
+}
+
+function parseInitialContent(raw: string): object | string {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && "type" in parsed) {
+      return parsed as object;
+    }
+  } catch {
+    // fall through
+  }
+  return "";
+}
+
+type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
+
+function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialContent: string }) {
+  const update = useUpdateChapterContent(chapter.projectId);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [wordCount, setWordCount] = useState(chapter.wordCount);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const editor = useEditor({
+    extensions: [StarterKit, CharacterCount.configure({})],
+    content: parseInitialContent(initialContent),
+    autofocus: "end",
+    editorProps: {
+      attributes: {
+        class:
+          "ProseMirror min-h-[60vh] max-w-none px-8 py-8 focus:outline-none text-[15px] leading-7",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      setSaveStatus("pending");
+      const chars = editor.storage.characterCount.characters() as number;
+      setWordCount(chars);
+
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        const json = editor.getJSON();
+        setSaveStatus("saving");
+        update.mutate(
+          {
+            id: chapter.id,
+            contentJson: JSON.stringify(json),
+            wordCount: chars,
+          },
+          {
+            onSuccess: () => setSaveStatus("saved"),
+            onError: () => setSaveStatus("error"),
+          },
+        );
+      }, 500);
+    },
+  });
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      if (!editor) return;
+      const chars = editor.storage.characterCount.characters() as number;
+      const json = editor.getJSON();
+      update.mutate({
+        id: chapter.id,
+        contentJson: JSON.stringify(json),
+        wordCount: chars,
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const statusMeta = STATUS_META[chapter.status];
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b px-6 py-3">
-        <h2 className="text-lg font-medium">未选章节</h2>
-        <Badge variant="secondary">草稿</Badge>
-        <span className="ml-auto text-xs text-muted-foreground">0 字</span>
+        <h2 className="truncate text-lg font-medium" title={chapter.title}>
+          {chapter.title}
+        </h2>
+        <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+        <span className="ml-auto text-xs text-muted-foreground">{wordCount} 字</span>
+        <SaveIndicator status={saveStatus} />
       </div>
-      <div className="flex flex-1 items-center justify-center overflow-auto px-8 py-12">
-        <div className="max-w-prose text-center text-sm text-muted-foreground">
-          <p>编辑器占位</p>
-          <p className="mt-2 text-xs">TODO: F5 TipTap 接入（doc/07）</p>
-        </div>
+      <div className="flex-1 overflow-auto">
+        <EditorContent editor={editor} />
       </div>
     </div>
+  );
+}
+
+function SaveIndicator({ status }: { status: SaveStatus }) {
+  const map: Record<SaveStatus, { icon: React.ReactNode; text: string; cls: string }> = {
+    idle: { icon: null, text: "", cls: "text-muted-foreground" },
+    pending: {
+      icon: <Loader2 className="h-3 w-3 animate-spin" />,
+      text: "正在编辑",
+      cls: "text-muted-foreground",
+    },
+    saving: {
+      icon: <Loader2 className="h-3 w-3 animate-spin" />,
+      text: "保存中",
+      cls: "text-muted-foreground",
+    },
+    saved: {
+      icon: <Check className="h-3 w-3" />,
+      text: "已保存",
+      cls: "text-muted-foreground",
+    },
+    error: {
+      icon: <AlertCircle className="h-3 w-3" />,
+      text: "保存失败",
+      cls: "text-destructive",
+    },
+  };
+  const m = map[status];
+  if (!m.text) return null;
+  return (
+    <span className={cn("flex items-center gap-1 text-xs", m.cls)}>
+      {m.icon}
+      {m.text}
+    </span>
   );
 }

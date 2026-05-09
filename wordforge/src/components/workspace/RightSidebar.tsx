@@ -9,7 +9,7 @@ export function RightSidebar() {
     <div className="flex h-full flex-col bg-sidebar">
       <Tabs defaultValue="ai" className="flex-1 overflow-hidden">
         <TabsList className="m-2 grid grid-cols-3">
-          <TabsTrigger value="ai">AI 助手</TabsTrigger>
+          <TabsTrigger value="ai">AI</TabsTrigger>
           <TabsTrigger value="notes">批注</TabsTrigger>
           <TabsTrigger value="history">修订</TabsTrigger>
         </TabsList>

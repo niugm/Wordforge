@@ -1,3 +1,4 @@
+pub mod chapters;
 pub mod projects;
 
 use std::path::Path;

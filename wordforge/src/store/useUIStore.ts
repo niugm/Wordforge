@@ -40,7 +40,12 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: "wordforge-ui",
-      partialize: (state) => ({ theme: state.theme, focusMode: state.focusMode }),
+      version: 1,
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<UIState>;
+        return { theme: p.theme ?? "dark" } as UIState;
+      },
+      partialize: (state) => ({ theme: state.theme }),
     },
   ),
 );

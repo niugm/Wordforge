@@ -1,9 +1,7 @@
+import { Minimize2 } from "lucide-react";
 import { Outlet, useMatch } from "react-router";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { Button } from "@/components/ui/button";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { EditorPanel } from "@/components/workspace/EditorPanel";
 import { Footer } from "@/components/workspace/Footer";
 import { LeftSidebar } from "@/components/workspace/LeftSidebar";
@@ -19,6 +17,7 @@ export function Workspace() {
   const leftCollapsed = useWorkspaceStore((s) => s.leftCollapsed);
   const rightCollapsed = useWorkspaceStore((s) => s.rightCollapsed);
   const focusMode = useUIStore((s) => s.focusMode);
+  const toggleFocus = useUIStore((s) => s.toggleFocus);
   const hasChapterRoute = useMatch("/workspace/chapter/:id");
 
   const showLeft = !leftCollapsed && !focusMode;
@@ -32,21 +31,34 @@ export function Workspace() {
         <ResizablePanelGroup orientation="horizontal">
           {showLeft && (
             <>
-              <ResizablePanel defaultSize={18} minSize={12} maxSize={32}>
+              <ResizablePanel
+                id="left"
+                defaultSize="22%"
+                minSize="16%"
+                maxSize="34%"
+              >
                 <LeftSidebar />
               </ResizablePanel>
-              <ResizableHandle />
+              <ResizableHandle withHandle />
             </>
           )}
 
-          <ResizablePanel defaultSize={showLeft && showRight ? 60 : 80}>
+          <ResizablePanel
+            id="center"
+            defaultSize={showLeft && showRight ? "54%" : "78%"}
+          >
             {hasChapterRoute ? <Outlet /> : <EditorPanel />}
           </ResizablePanel>
 
           {showRight && (
             <>
-              <ResizableHandle />
-              <ResizablePanel defaultSize={22} minSize={14} maxSize={36}>
+              <ResizableHandle withHandle />
+              <ResizablePanel
+                id="right"
+                defaultSize="24%"
+                minSize="18%"
+                maxSize="36%"
+              >
                 <RightSidebar />
               </ResizablePanel>
             </>
@@ -55,6 +67,19 @@ export function Workspace() {
       </div>
 
       {!focusMode && <Footer />}
+
+      {focusMode && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="fixed top-3 right-3 gap-1 shadow-md"
+          onClick={toggleFocus}
+          title="退出专注模式 (F11)"
+        >
+          <Minimize2 className="h-3.5 w-3.5" />
+          退出专注
+        </Button>
+      )}
     </div>
   );
 }
