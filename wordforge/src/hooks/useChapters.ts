@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { chaptersRepo } from "@/services/db";
-import type { Chapter } from "@/types/db";
+import type { AppErrorPayload, Chapter } from "@/types/db";
+
+function errMsg(e: unknown): string {
+  if (e && typeof e === "object" && "message" in e) return (e as AppErrorPayload).message;
+  return String(e);
+}
 
 const chaptersKey = (projectId: string) => ["chapters", projectId] as const;
 
@@ -44,6 +50,7 @@ export function useUpdateChapterContent(projectId: string) {
         prev ? { ...prev, wordCount: vars.wordCount, updatedAt: Date.now() } : prev,
       );
     },
+    onError: (e) => toast.error(`保存失败：${errMsg(e)}`),
   });
 }
 
@@ -51,7 +58,11 @@ export function useCreateChapter(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: chaptersRepo.create,
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaptersKey(projectId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaptersKey(projectId) });
+      toast.success("章节已创建");
+    },
+    onError: (e) => toast.error(`创建失败：${errMsg(e)}`),
   });
 }
 
@@ -59,7 +70,11 @@ export function useRenameChapter(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: chaptersRepo.rename,
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaptersKey(projectId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaptersKey(projectId) });
+      toast.success("已重命名");
+    },
+    onError: (e) => toast.error(`重命名失败：${errMsg(e)}`),
   });
 }
 
@@ -68,6 +83,7 @@ export function useSetChapterStatus(projectId: string) {
   return useMutation({
     mutationFn: chaptersRepo.setStatus,
     onSuccess: () => qc.invalidateQueries({ queryKey: chaptersKey(projectId) }),
+    onError: (e) => toast.error(`状态更新失败：${errMsg(e)}`),
   });
 }
 
@@ -76,6 +92,7 @@ export function useMoveChapter(projectId: string) {
   return useMutation({
     mutationFn: chaptersRepo.move,
     onSuccess: () => qc.invalidateQueries({ queryKey: chaptersKey(projectId) }),
+    onError: (e) => toast.error(`移动失败：${errMsg(e)}`),
   });
 }
 
@@ -96,8 +113,9 @@ export function useReorderChapters(projectId: string) {
       }
       return { previous };
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (err, _vars, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+      toast.error(`排序失败：${errMsg(err)}`);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
@@ -107,6 +125,10 @@ export function useDeleteChapter(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: chaptersRepo.remove,
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaptersKey(projectId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaptersKey(projectId) });
+      toast.success("章节已删除");
+    },
+    onError: (e) => toast.error(`删除失败：${errMsg(e)}`),
   });
 }

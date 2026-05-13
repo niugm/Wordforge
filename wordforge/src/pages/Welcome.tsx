@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Feather, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,17 @@ import type { Project } from "@/types/db";
 
 export function Welcome() {
   const navigate = useNavigate();
+  const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
   const setCurrentProject = useWorkspaceStore((s) => s.setCurrentProject);
 
   const { data: projects, isLoading, error } = useProjects();
+
+  useEffect(() => {
+    if (isLoading || error) return;
+    if (!currentProjectId) return;
+    const exists = (projects ?? []).some((p) => p.id === currentProjectId && p.archived === 0);
+    if (exists) navigate("/workspace", { replace: true });
+  }, [isLoading, error, projects, currentProjectId, navigate]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<Project | null>(null);
