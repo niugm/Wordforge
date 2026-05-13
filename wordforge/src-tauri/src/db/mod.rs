@@ -1,5 +1,6 @@
 pub mod chapters;
 pub mod projects;
+pub mod sessions;
 
 use std::path::Path;
 

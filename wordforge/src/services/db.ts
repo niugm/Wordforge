@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Chapter, ChapterStatus, Project } from "@/types/db";
+import type { Chapter, ChapterStatus, DailyWords, Project, WritingSession, WritingStats } from "@/types/db";
 
 export const projectsRepo = {
   list: () => invoke<Project[]>("list_projects"),
@@ -39,4 +39,18 @@ export const chaptersRepo = {
     invoke<void>("reorder_chapters", input),
 
   remove: (input: { id: string }) => invoke<void>("delete_chapter", input),
+};
+
+export const sessionsRepo = {
+  start: (input: { projectId: string }) =>
+    invoke<WritingSession>("start_session", input),
+
+  end: (input: { id: string; wordsWritten: number }) =>
+    invoke<void>("end_session", input),
+
+  getStats: (input: { projectId: string }) =>
+    invoke<WritingStats>("get_writing_stats", input),
+
+  getDailyWords: (input: { projectId: string; days: number }) =>
+    invoke<DailyWords[]>("get_daily_words", input),
 };

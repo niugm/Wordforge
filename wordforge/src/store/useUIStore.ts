@@ -9,6 +9,7 @@ type UIState = {
   settingsOpen: boolean;
   searchOpen: boolean;
   focusMode: boolean;
+  liveWordCount: number | null;
 
   setTheme: (theme: Theme) => void;
   toggleCommand: () => void;
@@ -18,6 +19,7 @@ type UIState = {
   setCommand: (open: boolean) => void;
   setSettings: (open: boolean) => void;
   setSearch: (open: boolean) => void;
+  setLiveWordCount: (n: number | null) => void;
 };
 
 export const useUIStore = create<UIState>()(
@@ -28,6 +30,7 @@ export const useUIStore = create<UIState>()(
       settingsOpen: false,
       searchOpen: false,
       focusMode: false,
+      liveWordCount: null,
 
       setTheme: (theme) => set({ theme }),
       toggleCommand: () => set((s) => ({ commandOpen: !s.commandOpen })),
@@ -37,6 +40,7 @@ export const useUIStore = create<UIState>()(
       setCommand: (open) => set({ commandOpen: open }),
       setSettings: (open) => set({ settingsOpen: open }),
       setSearch: (open) => set({ searchOpen: open }),
+      setLiveWordCount: (n) => set({ liveWordCount: n }),
     }),
     {
       name: "wordforge-ui",

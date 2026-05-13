@@ -8,7 +8,9 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EditorToolbar } from "@/components/workspace/EditorToolbar";
 import { useChapter, useChapterContent, useUpdateChapterContent } from "@/hooks/useChapters";
+import { useEndSession, useStartSession } from "@/hooks/useSessions";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/store/useUIStore";
 import type { Chapter, ChapterStatus } from "@/types/db";
 
 const STATUS_META: Record<
@@ -84,9 +86,36 @@ type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
 
 function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialContent: string }) {
   const update = useUpdateChapterContent(chapter.projectId);
+  const startSession = useStartSession();
+  const endSession = useEndSession(chapter.projectId);
+  const setLiveWordCount = useUIStore((s) => s.setLiveWordCount);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [wordCount, setWordCount] = useState(chapter.wordCount);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionStartWordsRef = useRef<number>(chapter.wordCount);
+
+  useEffect(() => {
+    startSession.mutate(
+      { projectId: chapter.projectId },
+      {
+        onSuccess: (session) => {
+          sessionIdRef.current = session.id;
+          sessionStartWordsRef.current = chapter.wordCount;
+        },
+      },
+    );
+    return () => {
+      const sid = sessionIdRef.current;
+      if (sid) {
+        const current = sessionStartWordsRef.current;
+        endSession.mutate({ id: sid, wordsWritten: current });
+        sessionIdRef.current = null;
+      }
+      setLiveWordCount(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const editor = useEditor({
     extensions: [StarterKit, Underline, CharacterCount.configure({})],
@@ -102,6 +131,8 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       setSaveStatus("pending");
       const chars = editor.storage.characterCount.characters() as number;
       setWordCount(chars);
+      setLiveWordCount(chars);
+      sessionStartWordsRef.current = Math.max(0, chars - chapter.wordCount);
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
@@ -123,6 +154,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   });
 
   useEffect(() => {
+    setLiveWordCount(chapter.wordCount);
     return () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);

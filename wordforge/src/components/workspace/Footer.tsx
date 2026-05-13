@@ -1,22 +1,22 @@
-import { Check, Focus } from "lucide-react";
+import { Focus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useWritingStats } from "@/hooks/useSessions";
 import { useUIStore } from "@/store/useUIStore";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 export function Footer() {
   const focusMode = useUIStore((s) => s.focusMode);
   const toggleFocus = useUIStore((s) => s.toggleFocus);
+  const liveWordCount = useUIStore((s) => s.liveWordCount);
+  const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
+  const { data: stats } = useWritingStats(currentProjectId);
 
   return (
     <footer className="flex h-8 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1">
-        <Check className="h-3 w-3" />
-        已保存
-      </span>
+      <span>{liveWordCount != null ? `${liveWordCount} 字 / 本章` : "0 字 / 本章"}</span>
       <Separator orientation="vertical" className="h-4" />
-      <span>0 字 / 本章</span>
-      <Separator orientation="vertical" className="h-4" />
-      <span>今日 0 字</span>
+      <span>今日 {stats?.todayWords ?? 0} 字</span>
 
       <Button
         variant="ghost"

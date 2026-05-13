@@ -24,7 +24,27 @@ export interface Chapter {
   updatedAt: number;
 }
 
+export interface WritingSession {
+  id: string;
+  projectId: string;
+  startedAt: number;
+  endedAt: number | null;
+  wordsWritten: number;
+}
+
+export interface WritingStats {
+  todayWords: number;
+  monthWords: number;
+  streak: number;
+}
+
+export interface DailyWords {
+  day: string;
+  words: number;
+}
+
 export interface AppErrorPayload {
   code: string;
   message: string;
 }
+
