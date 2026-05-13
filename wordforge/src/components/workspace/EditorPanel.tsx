@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Underline } from "@tiptap/extension-underline";
+import { BubbleMenu } from "@tiptap/react/menus";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Bold, Check, Italic, Loader2, Strikethrough, Underline as UnderlineIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EditorToolbar } from "@/components/workspace/EditorToolbar";
 import { useChapter, useChapterContent, useUpdateChapterContent } from "@/hooks/useChapters";
 import { useEndSession, useStartSession } from "@/hooks/useSessions";
@@ -186,9 +188,72 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       </div>
       <EditorToolbar editor={editor} />
       <div className="flex-1 overflow-auto">
+        {editor && (
+          <BubbleMenu
+            editor={editor}
+            options={{ placement: "top" }}
+            className="flex items-center gap-0.5 rounded-md border bg-popover p-1 shadow-md"
+          >
+            <BubbleBtn
+              active={editor.isActive("bold")}
+              title="加粗"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+              <Bold className="h-3.5 w-3.5" />
+            </BubbleBtn>
+            <BubbleBtn
+              active={editor.isActive("italic")}
+              title="斜体"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+            >
+              <Italic className="h-3.5 w-3.5" />
+            </BubbleBtn>
+            <BubbleBtn
+              active={editor.isActive("underline")}
+              title="下划线"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+            >
+              <UnderlineIcon className="h-3.5 w-3.5" />
+            </BubbleBtn>
+            <BubbleBtn
+              active={editor.isActive("strike")}
+              title="删除线"
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+            >
+              <Strikethrough className="h-3.5 w-3.5" />
+            </BubbleBtn>
+          </BubbleMenu>
+        )}
         <EditorContent editor={editor} />
       </div>
     </div>
+  );
+}
+
+function BubbleBtn({
+  active,
+  title,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  title: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn("h-7 w-7", active && "bg-accent text-accent-foreground")}
+      title={title}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+    >
+      {children}
+    </Button>
   );
 }
 

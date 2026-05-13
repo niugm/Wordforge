@@ -1,4 +1,5 @@
-import { Plus, Settings } from "lucide-react";
+import { ArrowLeftRight, Settings } from "lucide-react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -7,9 +8,17 @@ import { ChapterTree } from "@/components/workspace/panels/ChapterTree";
 import { CharacterList } from "@/components/workspace/panels/CharacterList";
 import { OutlineTree } from "@/components/workspace/panels/OutlineTree";
 import { useUIStore } from "@/store/useUIStore";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 export function LeftSidebar() {
+  const navigate = useNavigate();
   const toggleSettings = useUIStore((s) => s.toggleSettings);
+  const setCurrentProject = useWorkspaceStore((s) => s.setCurrentProject);
+
+  function switchProject() {
+    setCurrentProject(null);
+    navigate("/");
+  }
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
@@ -34,8 +43,8 @@ export function LeftSidebar() {
 
       <Separator />
       <div className="flex items-center justify-between p-2">
-        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-          <Plus className="h-3.5 w-3.5" />
+        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={switchProject}>
+          <ArrowLeftRight className="h-3.5 w-3.5" />
           切换作品
         </Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleSettings}>

@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Menu, Settings } from "lucide-react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
@@ -17,6 +19,11 @@ export function TitleBar() {
   const { data: projects } = useProjects();
   const currentProject = projects?.find((p) => p.id === currentProjectId) ?? null;
   const { data: currentChapter } = useChapter(currentChapterId);
+
+  useEffect(() => {
+    const title = currentProject ? `${currentProject.name} — Wordforge` : "Wordforge";
+    getCurrentWindow().setTitle(title).catch(() => {});
+  }, [currentProject]);
 
   return (
     <header className="flex h-12 items-center gap-2 border-b px-3">
