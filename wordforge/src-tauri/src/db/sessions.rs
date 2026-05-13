@@ -73,7 +73,7 @@ pub async fn get_stats(pool: &SqlitePool, project_id: &str) -> AppResult<Writing
         "SELECT COALESCE(SUM(words_written), 0)
          FROM writing_sessions
          WHERE project_id = ?
-           AND date(started_at/1000, 'unixepoch') = date('now')",
+           AND date(started_at/1000, 'unixepoch', 'localtime') = date('now', 'localtime')",
     )
     .bind(project_id)
     .fetch_one(pool)
@@ -83,14 +83,14 @@ pub async fn get_stats(pool: &SqlitePool, project_id: &str) -> AppResult<Writing
         "SELECT COALESCE(SUM(words_written), 0)
          FROM writing_sessions
          WHERE project_id = ?
-           AND strftime('%Y-%m', started_at/1000, 'unixepoch') = strftime('%Y-%m', 'now')",
+           AND strftime('%Y-%m', started_at/1000, 'unixepoch', 'localtime') = strftime('%Y-%m', 'now', 'localtime')",
     )
     .bind(project_id)
     .fetch_one(pool)
     .await?;
 
     let days: Vec<String> = sqlx::query_scalar(
-        "SELECT DISTINCT date(started_at/1000, 'unixepoch') as day
+        "SELECT DISTINCT date(started_at/1000, 'unixepoch', 'localtime') as day
          FROM writing_sessions
          WHERE project_id = ? AND words_written > 0
          ORDER BY day DESC
@@ -100,7 +100,11 @@ pub async fn get_stats(pool: &SqlitePool, project_id: &str) -> AppResult<Writing
     .fetch_all(pool)
     .await?;
 
-    let streak = compute_streak(&days);
+    let today: String = sqlx::query_scalar("SELECT date('now', 'localtime')")
+        .fetch_one(pool)
+        .await?;
+
+    let streak = compute_streak(&days, &today);
 
     Ok(WritingStats {
         today_words,
@@ -116,11 +120,11 @@ pub async fn get_daily_words(
 ) -> AppResult<Vec<DailyWords>> {
     let modifier = format!("-{days} days");
     let rows = sqlx::query_as::<_, DailyWords>(
-        "SELECT date(started_at/1000, 'unixepoch') as day,
+        "SELECT date(started_at/1000, 'unixepoch', 'localtime') as day,
                 SUM(words_written) as words
          FROM writing_sessions
          WHERE project_id = ?
-           AND started_at >= CAST(strftime('%s', 'now', ?) AS INTEGER) * 1000
+           AND started_at >= CAST(strftime('%s', 'now', 'localtime', ?) AS INTEGER) * 1000
          GROUP BY day
          ORDER BY day",
     )
@@ -131,20 +135,17 @@ pub async fn get_daily_words(
     Ok(rows)
 }
 
-fn compute_streak(days: &[String]) -> i64 {
+fn compute_streak(days: &[String], today: &str) -> i64 {
     if days.is_empty() {
         return 0;
     }
-    let today = today_utc();
-    let yesterday = offset_utc(-1);
-
+    let yesterday = prev_date(today);
     if days[0] != today && days[0] != yesterday {
         return 0;
     }
 
     let mut streak = 1i64;
     let mut prev_secs = date_to_unix_secs(&days[0]);
-
     for day in days.iter().skip(1) {
         let secs = date_to_unix_secs(day);
         if prev_secs - secs == 86400 {
@@ -157,22 +158,12 @@ fn compute_streak(days: &[String]) -> i64 {
     streak
 }
 
-fn today_utc() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    unix_secs_to_date_str(secs)
-}
-
-fn offset_utc(days: i64) -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
-    unix_secs_to_date_str((secs + days * 86400) as u64)
+fn prev_date(date: &str) -> String {
+    let secs = date_to_unix_secs(date);
+    if secs < 86400 {
+        return date.to_string();
+    }
+    unix_secs_to_date_str(secs - 86400)
 }
 
 fn unix_secs_to_date_str(secs: u64) -> String {

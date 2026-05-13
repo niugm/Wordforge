@@ -110,8 +110,8 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
     return () => {
       const sid = sessionIdRef.current;
       if (sid) {
-        const current = sessionStartWordsRef.current;
-        endSession.mutate({ id: sid, wordsWritten: current });
+        const wordsWritten = Math.max(0, sessionStartWordsRef.current - chapter.wordCount);
+        endSession.mutate({ id: sid, wordsWritten });
         sessionIdRef.current = null;
       }
       setLiveWordCount(null);
@@ -134,7 +134,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       const chars = editor.storage.characterCount.characters() as number;
       setWordCount(chars);
       setLiveWordCount(chars);
-      sessionStartWordsRef.current = Math.max(0, chars - chapter.wordCount);
+      sessionStartWordsRef.current = chars;
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
