@@ -19,6 +19,16 @@ pub async fn create_project(
 }
 
 #[tauri::command]
+pub async fn update_project_meta(
+    pool: State<'_, SqlitePool>,
+    id: String,
+    description: Option<String>,
+    target_word_count: i64,
+) -> AppResult<()> {
+    projects::update_meta(pool.inner(), &id, description.as_deref(), target_word_count).await
+}
+
+#[tauri::command]
 pub async fn rename_project(
     pool: State<'_, SqlitePool>,
     id: String,

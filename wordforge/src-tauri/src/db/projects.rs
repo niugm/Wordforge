@@ -66,6 +66,28 @@ pub async fn create(
     })
 }
 
+pub async fn update_meta(
+    pool: &SqlitePool,
+    id: &str,
+    description: Option<&str>,
+    target_word_count: i64,
+) -> AppResult<()> {
+    let result = sqlx::query(
+        "UPDATE projects SET description = ?, target_word_count = ?, updated_at = ? WHERE id = ?",
+    )
+    .bind(description)
+    .bind(target_word_count.max(0))
+    .bind(now_ms())
+    .bind(id)
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound(format!("project {id}")));
+    }
+    Ok(())
+}
+
 pub async fn rename(pool: &SqlitePool, id: &str, name: &str) -> AppResult<()> {
     let trimmed = name.trim();
     if trimmed.is_empty() {

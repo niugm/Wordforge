@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Pencil, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Settings2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   ContextMenu,
@@ -14,10 +14,11 @@ type Props = {
   project: Project;
   onOpen: (project: Project) => void;
   onRename: (project: Project) => void;
+  onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
 };
 
-export function ProjectCard({ project, onOpen, onRename, onDelete }: Props) {
+export function ProjectCard({ project, onOpen, onRename, onEdit, onDelete }: Props) {
   const archive = useArchiveProject();
   const isArchived = project.archived === 1;
 
@@ -36,8 +37,11 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: Props) {
                   {project.description}
                 </div>
               )}
-              <div className="mt-1 text-xs text-muted-foreground">
-                更新于 {new Date(project.updatedAt).toLocaleDateString()}
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>更新于 {new Date(project.updatedAt).toLocaleDateString()}</span>
+                {project.targetWordCount > 0 && (
+                  <span>目标 {project.targetWordCount.toLocaleString()} 字</span>
+                )}
               </div>
             </div>
             {isArchived && (
@@ -53,10 +57,12 @@ export function ProjectCard({ project, onOpen, onRename, onDelete }: Props) {
           <Pencil className="mr-2 h-4 w-4" />
           重命名
         </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onEdit(project)}>
+          <Settings2 className="mr-2 h-4 w-4" />
+          编辑信息
+        </ContextMenuItem>
         <ContextMenuItem
-          onSelect={() =>
-            archive.mutate({ id: project.id, archived: !isArchived })
-          }
+          onSelect={() => archive.mutate({ id: project.id, archived: !isArchived })}
         >
           {isArchived ? (
             <>

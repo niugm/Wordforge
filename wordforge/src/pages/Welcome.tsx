@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Feather, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { DeleteProjectAlert } from "@/components/welcome/DeleteProjectAlert";
+import { EditProjectDialog } from "@/components/welcome/EditProjectDialog";
 import { NewProjectDialog } from "@/components/welcome/NewProjectDialog";
 import { ProjectCard } from "@/components/welcome/ProjectCard";
 import { RenameProjectDialog } from "@/components/welcome/RenameProjectDialog";
@@ -26,6 +27,7 @@ export function Welcome() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<Project | null>(null);
+  const [editTarget, setEditTarget] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
@@ -89,6 +91,7 @@ export function Welcome() {
                   project={p}
                   onOpen={openProject}
                   onRename={setRenameTarget}
+                  onEdit={setEditTarget}
                   onDelete={setDeleteTarget}
                 />
               ))}
@@ -118,6 +121,7 @@ export function Welcome() {
                     project={p}
                     onOpen={openProject}
                     onRename={setRenameTarget}
+                    onEdit={setEditTarget}
                     onDelete={setDeleteTarget}
                   />
                 ))}
@@ -135,6 +139,10 @@ export function Welcome() {
       <RenameProjectDialog
         project={renameTarget}
         onOpenChange={(open) => !open && setRenameTarget(null)}
+      />
+      <EditProjectDialog
+        project={editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
       />
       <DeleteProjectAlert
         project={deleteTarget}

@@ -7,6 +7,9 @@ export const projectsRepo = {
   create: (input: { name: string; description?: string | null }) =>
     invoke<Project>("create_project", input),
 
+  updateMeta: (input: { id: string; description: string | null; targetWordCount: number }) =>
+    invoke<void>("update_project_meta", input),
+
   rename: (input: { id: string; name: string }) => invoke<void>("rename_project", input),
 
   archive: (input: { id: string; archived: boolean }) => invoke<void>("archive_project", input),

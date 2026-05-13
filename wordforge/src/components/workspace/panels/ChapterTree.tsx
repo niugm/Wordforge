@@ -5,6 +5,7 @@ import {
   CircleCheck,
   CircleDot,
   FileText,
+  FolderOpen,
   GripVertical,
   Pencil,
   Plus,
@@ -38,6 +39,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { DeleteChapterAlert } from "@/components/chapters/DeleteChapterAlert";
+import { MoveChapterDialog } from "@/components/chapters/MoveChapterDialog";
 import { NewChapterDialog } from "@/components/chapters/NewChapterDialog";
 import { RenameChapterDialog } from "@/components/chapters/RenameChapterDialog";
 import { useChapters, useReorderChapters, useSetChapterStatus } from "@/hooks/useChapters";
@@ -96,6 +98,7 @@ export function ChapterTree() {
     parentTitle: string | null;
   } | null>(null);
   const [renameTarget, setRenameTarget] = useState<TreeNode | null>(null);
+  const [moveTarget, setMoveTarget] = useState<TreeNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TreeNode | null>(null);
 
   function toggleExpand(id: string) {
@@ -219,6 +222,7 @@ export function ChapterTree() {
                 onOpen={openChapter}
                 onAddChild={(n) => setCreateTarget({ parentId: n.id, parentTitle: n.title })}
                 onRename={setRenameTarget}
+                onMove={setMoveTarget}
                 onDelete={setDeleteTarget}
                 onMoveSibling={moveSibling}
               />
@@ -256,6 +260,12 @@ export function ChapterTree() {
           }
         }}
       />
+      <MoveChapterDialog
+        chapter={moveTarget}
+        chapters={chapters ?? []}
+        projectId={projectId}
+        onOpenChange={(open) => !open && setMoveTarget(null)}
+      />
     </div>
   );
 }
@@ -269,6 +279,7 @@ type NodeProps = {
   onOpen: (node: TreeNode) => void;
   onAddChild: (node: TreeNode) => void;
   onRename: (node: TreeNode) => void;
+  onMove: (node: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
   onMoveSibling: (id: string, direction: "up" | "down") => void;
 };
@@ -282,6 +293,7 @@ function ChapterNode({
   onOpen,
   onAddChild,
   onRename,
+  onMove,
   onDelete,
   onMoveSibling,
 }: NodeProps) {
@@ -382,6 +394,10 @@ function ChapterNode({
             <Pencil className="mr-2 h-4 w-4" />
             重命名
           </ContextMenuItem>
+          <ContextMenuItem onSelect={() => onMove(node)}>
+            <FolderOpen className="mr-2 h-4 w-4" />
+            移动到...
+          </ContextMenuItem>
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <CircleDot className="mr-2 h-4 w-4" />
@@ -439,6 +455,7 @@ function ChapterNode({
                 onOpen={onOpen}
                 onAddChild={onAddChild}
                 onRename={onRename}
+                onMove={onMove}
                 onDelete={onDelete}
                 onMoveSibling={onMoveSibling}
               />

@@ -15,6 +15,18 @@ export function useProjects() {
   });
 }
 
+export function useUpdateProjectMeta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: projectsRepo.updateMeta,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("项目信息已更新");
+    },
+    onError: (e) => toast.error(`更新失败：${errMsg(e)}`),
+  });
+}
+
 export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
