@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已完成 UI 精修阶段 3；之后继续做 UI 精修阶段 4）
+> 更新时间：2026-05-15（已完成 UI 精修阶段 4；之后可继续功能开发或设置弹窗深度精修）
 
 ## 当前分支状态
 
@@ -16,6 +16,7 @@
 - `14a86a3 style: polish workspace shell` 已提交。
 - `style: refine chapter tree` 已提交。
 - `style: polish search and command surfaces` 已提交。
+- `style: polish settings dialog` 已提交。
 - 当前工作树干净。
 
 ## 本轮已完成
@@ -89,6 +90,12 @@
 - SearchDialog 分组标题接入图标和计数胶囊。
 - SearchDialog 结果项改为带边框的语义色图标徽块，匹配类型标签复用同一套语义色。
 
+### UI 精修阶段 4
+
+- SettingsDialog 顶部 Tab 改为五列布局，并统一接入 `IconLabel`。
+- 外观 / AI / 备份 / 导出 / 字数页的分组标题统一为 `SectionHeading`，带语义图标徽块和说明文字。
+- 本阶段只改呈现层，不改变设置保存、备份、导出、AI 密钥相关业务逻辑。
+
 ### 章节缓存同步修复
 
 - 修复右键修改章节状态后，编辑区顶部状态徽标不实时同步的问题。
@@ -123,6 +130,7 @@
 - `wordforge/src/components/workspace/panels/ChapterTree.tsx`
 - `wordforge/src/components/shell/CommandPalette.tsx`
 - `wordforge/src/components/shell/SearchDialog.tsx`
+- `wordforge/src/components/shell/SettingsDialog.tsx`
 - `doc/07-features.md`
 - `doc/08-roadmap.md`
 
@@ -146,6 +154,6 @@
 
 ## 建议下一步
 
-1. 继续 UI 精修阶段 4：SettingsDialog 的设置分组、表单密度、状态反馈与导出/备份/AI 配置页视觉层级。
-2. 之后可回到 F13 导出深化（文件选择器 / Docx），或处理 AI Key 安全存储。
-3. 如果优先做功能，可实现 F13 文件选择器，让导出位置由用户选择。
+1. 可继续 SettingsDialog 深度精修：AI provider 卡片、备份开关、导出格式选择卡片的图标和状态反馈。
+2. 如果优先做功能，可实现 F13 文件选择器，让导出位置由用户选择。
+3. 若继续 AI 方向，先处理 AI Key 安全存储，再实现段落精修调用链路。

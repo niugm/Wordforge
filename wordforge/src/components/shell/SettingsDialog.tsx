@@ -7,9 +7,12 @@ import {
   FileArchive,
   FileDown,
   FolderOpen,
+  Hash,
   KeyRound,
+  Palette,
   Save,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -21,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IconLabel } from "@/components/ui/icon-label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -119,6 +123,14 @@ const EXPORT_MODE_OPTIONS: Array<{ value: ExportMode; label: string; description
   },
 ];
 
+const SETTINGS_TABS: Array<{ value: string; label: string; icon: LucideIcon }> = [
+  { value: "appearance", label: "外观", icon: Palette },
+  { value: "ai", label: "AI", icon: Bot },
+  { value: "backup", label: "备份", icon: DatabaseBackup },
+  { value: "export", label: "导出", icon: FileDown },
+  { value: "counting", label: "字数", icon: Hash },
+];
+
 export function SettingsDialog() {
   const open = useUIStore((s) => s.settingsOpen);
   const setSettings = useUIStore((s) => s.setSettings);
@@ -183,20 +195,23 @@ export function SettingsDialog() {
           <DialogDescription>外观 / AI / 备份 / 导出 / 字数计数</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="appearance">
-          <TabsList>
-            <TabsTrigger value="appearance">外观</TabsTrigger>
-            <TabsTrigger value="ai">AI</TabsTrigger>
-            <TabsTrigger value="backup">备份</TabsTrigger>
-            <TabsTrigger value="export">导出</TabsTrigger>
-            <TabsTrigger value="counting">字数</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            {SETTINGS_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} className="min-w-0">
+                <IconLabel icon={tab.icon} className="min-w-0" iconClassName="h-3.5 w-3.5">
+                  {tab.label}
+                </IconLabel>
+              </TabsTrigger>
+            ))}
           </TabsList>
           <TabsContent value="appearance" className="py-4 text-sm text-muted-foreground">
             <div className="space-y-5 text-foreground">
               <section className="space-y-3">
-                <div>
-                  <h3 className="text-sm font-medium">编辑器偏好</h3>
-                  <p className="text-xs text-muted-foreground">调整正文排版，不影响已保存内容。</p>
-                </div>
+                <SectionHeading
+                  icon={Palette}
+                  title="编辑器偏好"
+                  description="调整正文排版，不影响已保存内容。"
+                />
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="字体" htmlFor="editor-font">
@@ -282,12 +297,11 @@ export function SettingsDialog() {
           </TabsContent>
           <TabsContent value="ai" className="py-4">
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium">AI Provider</h3>
-                <p className="text-xs text-muted-foreground">
-                  密钥只写入本地数据库，前端仅显示是否已保存。
-                </p>
-              </div>
+              <SectionHeading
+                icon={Bot}
+                title="AI Provider"
+                description="密钥只写入本地数据库，前端仅显示是否已保存。"
+              />
 
               <div className="grid gap-4 md:grid-cols-[190px_1fr]">
                 <div className="grid gap-2">
@@ -427,12 +441,11 @@ export function SettingsDialog() {
           </TabsContent>
           <TabsContent value="backup" className="py-4">
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium">备份</h3>
-                <p className="text-xs text-muted-foreground">
-                  设置数据库备份目录，并可手动生成一份当前数据库副本。
-                </p>
-              </div>
+              <SectionHeading
+                icon={DatabaseBackup}
+                title="备份"
+                description="设置数据库备份目录，并可手动生成一份当前数据库副本。"
+              />
 
               <Field label="备份目录" htmlFor="backup-dir">
                 <Input
@@ -503,12 +516,11 @@ export function SettingsDialog() {
           </TabsContent>
           <TabsContent value="export" className="py-4">
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium">导出当前作品</h3>
-                <p className="text-xs text-muted-foreground">
-                  导出文件会生成到应用数据目录下的 exports 文件夹。
-                </p>
-              </div>
+              <SectionHeading
+                icon={FileDown}
+                title="导出当前作品"
+                description="导出文件会生成到应用数据目录下的 exports 文件夹。"
+              />
 
               <div className="rounded-md border bg-background p-3">
                 <div className="flex items-center gap-2 text-sm">
@@ -614,12 +626,11 @@ export function SettingsDialog() {
           </TabsContent>
           <TabsContent value="counting" className="py-4">
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium">字数计数模式</h3>
-                <p className="text-xs text-muted-foreground">
-                  影响编辑器实时字数、保存到章节的字数和写作会话增量。
-                </p>
-              </div>
+              <SectionHeading
+                icon={Hash}
+                title="字数计数模式"
+                description="影响编辑器实时字数、保存到章节的字数和写作会话增量。"
+              />
               <div className="grid gap-2 sm:grid-cols-3">
                 {WORD_COUNT_OPTIONS.map((option) => (
                   <button
@@ -668,6 +679,28 @@ function Field({
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+function SectionHeading({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-sm font-medium">{title}</h3>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
     </div>
   );
 }
