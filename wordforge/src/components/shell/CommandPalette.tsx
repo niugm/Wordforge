@@ -1,5 +1,14 @@
 import { useNavigate } from "react-router";
-import { FileText, History, LayoutDashboard, LayoutList, Search, Settings, UserRound } from "lucide-react";
+import {
+  FileText,
+  History,
+  LayoutDashboard,
+  LayoutList,
+  Search,
+  Settings,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,6 +21,7 @@ import {
 import { useCharacters } from "@/hooks/useCharacters";
 import { useChapters } from "@/hooks/useChapters";
 import { useOutlines } from "@/hooks/useOutlines";
+import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/useUIStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
@@ -24,7 +34,7 @@ type PaletteCommand = {
   kind: CommandKind;
   targetId: string | null;
   search: string;
-  icon: typeof LayoutDashboard;
+  icon: LucideIcon;
   shortcut?: string;
   run: () => void;
 };
@@ -35,6 +45,14 @@ const kindLabel: Record<CommandKind, string> = {
   chapter: "章节",
   character: "角色",
   outline: "大纲",
+};
+
+const kindTone: Record<CommandKind, string> = {
+  nav: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  action: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  chapter: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  character: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  outline: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 };
 
 export function CommandPalette() {
@@ -172,14 +190,25 @@ export function CommandPalette() {
       <CommandItem
         key={command.id}
         value={command.search}
+        className="gap-3 px-2 py-2"
         onSelect={() => run(command)}
       >
-        <Icon className="h-4 w-4" />
-        <span className="truncate">{command.label}</span>
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+            kindTone[command.kind],
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate">{command.label}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {command.detail || kindLabel[command.kind]}
+          </span>
+        </span>
         {command.shortcut ? (
           <CommandShortcut>{command.shortcut}</CommandShortcut>
-        ) : command.detail ? (
-          <CommandShortcut className="tracking-normal">{command.detail}</CommandShortcut>
         ) : null}
       </CommandItem>
     );
@@ -194,7 +223,12 @@ export function CommandPalette() {
     >
       <CommandInput placeholder="输入命令或搜索..." />
       <CommandList>
-        <CommandEmpty>无匹配结果</CommandEmpty>
+        <CommandEmpty>
+          <div className="flex flex-col items-center gap-2 px-6 py-2 text-muted-foreground">
+            <Search className="h-5 w-5" />
+            <span>无匹配结果</span>
+          </div>
+        </CommandEmpty>
         {visibleRecentCommands.length > 0 && (
           <CommandGroup heading="最近使用">
             {visibleRecentCommands.map((command) => {
@@ -203,11 +237,21 @@ export function CommandPalette() {
                 <CommandItem
                   key={`recent-${command.id}`}
                   value={`最近 ${command.search}`}
+                  className="gap-3 px-2 py-2"
                   onSelect={() => run(command)}
                 >
-                  <History className="h-4 w-4" />
-                  <Icon className="h-4 w-4 opacity-70" />
-                  <span className="truncate">{command.label}</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <History className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{command.label}</span>
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {command.detail || kindLabel[command.kind]}
+                    </span>
+                  </span>
                   <CommandShortcut className="tracking-normal">{kindLabel[command.kind]}</CommandShortcut>
                 </CommandItem>
               );

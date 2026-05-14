@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已完成 UI 精修阶段 2；之后继续做 UI 精修阶段 3）
+> 更新时间：2026-05-15（已完成 UI 精修阶段 3；之后继续做 UI 精修阶段 4）
 
 ## 当前分支状态
 
@@ -15,6 +15,7 @@
 - `6f4b31c fix: update scope word count on selection` 已提交。
 - `14a86a3 style: polish workspace shell` 已提交。
 - `style: refine chapter tree` 已提交。
+- `style: polish search and command surfaces` 已提交。
 - 当前工作树干净。
 
 ## 本轮已完成
@@ -80,6 +81,14 @@
 - 拖拽手柄改为 hover 渐显，当前章节保留弱可见提示。
 - 草稿 / 修订中 / 已完成状态点降低饱和度，并增加背景 ring，视觉上更稳。
 
+### UI 精修阶段 3
+
+- CommandPalette 命令项改为图标徽块 + 主副文本结构，导航 / 操作 / 章节 / 角色 / 大纲使用不同语义色。
+- CommandPalette 最近使用项增加历史徽块和原命令小图标，空状态接入搜索图标。
+- SearchDialog 结果区增加更稳的空状态 / 加载态，正文搜索时显示旋转加载图标。
+- SearchDialog 分组标题接入图标和计数胶囊。
+- SearchDialog 结果项改为带边框的语义色图标徽块，匹配类型标签复用同一套语义色。
+
 ### 章节缓存同步修复
 
 - 修复右键修改章节状态后，编辑区顶部状态徽标不实时同步的问题。
@@ -112,6 +121,8 @@
 - `wordforge/src/components/workspace/LeftSidebar.tsx`
 - `wordforge/src/components/workspace/RightSidebar.tsx`
 - `wordforge/src/components/workspace/panels/ChapterTree.tsx`
+- `wordforge/src/components/shell/CommandPalette.tsx`
+- `wordforge/src/components/shell/SearchDialog.tsx`
 - `doc/07-features.md`
 - `doc/08-roadmap.md`
 
@@ -135,6 +146,6 @@
 
 ## 建议下一步
 
-1. 继续 UI 精修阶段 3：SearchDialog / CommandPalette 的图标、分组、空状态和结果密度。
-2. 之后可做 SettingsDialog 精修，或回到 F13 导出深化（文件选择器 / Docx）。
-3. 如果继续 AI 方向，先处理密钥存储安全，再做 F6 段落精修。
+1. 继续 UI 精修阶段 4：SettingsDialog 的设置分组、表单密度、状态反馈与导出/备份/AI 配置页视觉层级。
+2. 之后可回到 F13 导出深化（文件选择器 / Docx），或处理 AI Key 安全存储。
+3. 如果优先做功能，可实现 F13 文件选择器，让导出位置由用户选择。

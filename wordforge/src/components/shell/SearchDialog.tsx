@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
-import { FileSearch, FileText, LayoutList, Search, UserRound } from "lucide-react";
+import {
+  FileSearch,
+  FileText,
+  LayoutList,
+  Loader2,
+  Search,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { useNavigate } from "react-router";
 import {
   Dialog,
@@ -38,12 +46,19 @@ const KIND_LABEL: Record<SearchResult["kind"], string> = {
   outline: "大纲",
 };
 
-const RESULT_GROUPS: Array<{ kind: SearchResult["kind"]; label: string }> = [
-  { kind: "chapter", label: "章节" },
-  { kind: "chapterBody", label: "正文" },
-  { kind: "character", label: "角色" },
-  { kind: "outline", label: "大纲" },
+const RESULT_GROUPS: Array<{ kind: SearchResult["kind"]; label: string; icon: LucideIcon }> = [
+  { kind: "chapter", label: "章节", icon: FileText },
+  { kind: "chapterBody", label: "正文", icon: FileSearch },
+  { kind: "character", label: "角色", icon: UserRound },
+  { kind: "outline", label: "大纲", icon: LayoutList },
 ];
+
+const KIND_TONE: Record<SearchResult["kind"], string> = {
+  chapter: "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  chapterBody: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  character: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  outline: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+};
 
 export function SearchDialog() {
   const open = useUIStore((s) => s.searchOpen);
@@ -139,17 +154,19 @@ export function SearchDialog() {
             autoFocus
           />
         </div>
-        <div className="min-h-32 overflow-hidden rounded-md border">
+        <div className="min-h-40 overflow-hidden rounded-md border bg-background">
           {!currentProjectId && (
-            <p className="p-4 text-sm text-muted-foreground">选择作品后可搜索。</p>
+            <SearchEmpty icon={FileText} title="选择作品后可搜索" />
           )}
           {currentProjectId && !query.trim() && (
-            <p className="p-4 text-sm text-muted-foreground">输入关键词开始搜索。</p>
+            <SearchEmpty icon={Search} title="输入关键词开始搜索" />
           )}
           {currentProjectId && query.trim() && results.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground">
-              {bodySearching ? "搜索中..." : "没有匹配结果。"}
-            </p>
+            <SearchEmpty
+              icon={bodySearching ? Loader2 : Search}
+              title={bodySearching ? "搜索中..." : "没有匹配结果"}
+              spinning={bodySearching}
+            />
           )}
           {results.length > 0 && (
             <SearchResultGroups results={results} query={query} onOpen={openResult} />
@@ -174,10 +191,15 @@ function SearchResultGroups({
       {RESULT_GROUPS.map((group) => {
         const groupResults = results.filter((result) => result.kind === group.kind);
         if (groupResults.length === 0) return null;
+        const GroupIcon = group.icon;
         return (
-          <li key={group.kind} className="py-1">
-            <div className="px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              {group.label}（{groupResults.length}）
+          <li key={group.kind} className="py-1.5">
+            <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+              <GroupIcon className="h-3.5 w-3.5" />
+              <span>{group.label}</span>
+              <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none">
+                {groupResults.length}
+              </span>
             </div>
             <ul>
               {groupResults.map((result) => (
@@ -209,12 +231,19 @@ function SearchResultItem({
     <li>
       <button
         type="button"
-        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent"
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/70 focus-visible:bg-accent focus-visible:outline-none"
         onClick={() => onOpen(result)}
       >
-        <span className="text-muted-foreground">{result.icon}</span>
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+            KIND_TONE[result.kind],
+          )}
+        >
+          {result.icon}
+        </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm">{result.title}</span>
+          <span className="block truncate text-sm font-medium">{result.title}</span>
           <span className="block truncate text-xs text-muted-foreground">
             {KIND_LABEL[result.kind]} · {result.subtitle}
           </span>
@@ -226,17 +255,33 @@ function SearchResultItem({
         </span>
         <span
           className={cn(
-            "rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground",
-            result.kind === "chapter" && "border-blue-500/30",
-            result.kind === "chapterBody" && "border-sky-500/30",
-            result.kind === "character" && "border-emerald-500/30",
-            result.kind === "outline" && "border-amber-500/30",
+            "rounded border px-1.5 py-0.5 text-[10px]",
+            KIND_TONE[result.kind],
           )}
         >
           {KIND_LABEL[result.kind]}
         </span>
       </button>
     </li>
+  );
+}
+
+function SearchEmpty({
+  icon: Icon,
+  title,
+  spinning = false,
+}: {
+  icon: LucideIcon;
+  title: string;
+  spinning?: boolean;
+}) {
+  return (
+    <div className="flex min-h-40 flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground">
+      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+        <Icon className={cn("h-4 w-4", spinning && "animate-spin")} />
+      </span>
+      <span>{title}</span>
+    </div>
   );
 }
 
