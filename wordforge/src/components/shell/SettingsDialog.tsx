@@ -194,7 +194,9 @@ export function SettingsDialog() {
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>设置</DialogTitle>
-          <DialogDescription>外观 / AI / 备份 / 导出 / 字数计数</DialogDescription>
+          <DialogDescription className="sr-only">
+            外观 / AI / 备份 / 导出 / 字数计数
+          </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="appearance">
           <TabsList className="grid w-full grid-cols-5">
