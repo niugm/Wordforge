@@ -52,6 +52,7 @@ pub fn run() {
             commands::chapters::get_chapter_content,
             commands::chapters::update_chapter_content,
             commands::chapters::create_chapter,
+            commands::chapters::duplicate_chapter,
             commands::chapters::rename_chapter,
             commands::chapters::set_chapter_status,
             commands::chapters::move_chapter,
@@ -78,6 +79,7 @@ pub fn run() {
             commands::settings::save_ai_credential,
             commands::settings::delete_ai_credential,
             commands::exports::export_project,
+            commands::exports::export_chapter,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

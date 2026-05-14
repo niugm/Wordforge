@@ -26,6 +26,7 @@ struct ExportProject {
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct ExportChapter {
     id: String,
+    project_id: String,
     parent_id: Option<String>,
     sort: i64,
     title: String,
@@ -102,6 +103,43 @@ pub async fn export_project(
     }
 }
 
+pub async fn export_chapter(
+    pool: &SqlitePool,
+    app_data_dir: &Path,
+    chapter_id: String,
+    format: String,
+) -> AppResult<ExportResult> {
+    let format = parse_format(&format)?;
+    let chapter = get_chapter(pool, &chapter_id).await?;
+    let project = get_project(pool, &chapter.project_id).await?;
+    let chapters = list_chapters(pool, &chapter.project_id).await?;
+    let ordered = order_chapters(chapters);
+    let subtree = collect_ordered_subtree(&ordered, &chapter_id);
+    if subtree.is_empty() {
+        return Err(AppError::NotFound(format!("chapter {chapter_id}")));
+    }
+
+    let ext = match format {
+        ExportFormat::Markdown => "md",
+        ExportFormat::PlainText => "txt",
+    };
+    let export_root = app_data_dir.join("wordforge").join("exports").join(format!(
+        "{}-chapter-{}",
+        sanitize_filename(&project.name),
+        now_ms()
+    ));
+    std::fs::create_dir_all(&export_root)?;
+
+    let path = export_root.join(format!("{}.{}", sanitize_filename(&chapter.title), ext));
+    let rendered = render_chapter_export(&chapter, &subtree, format);
+    std::fs::write(&path, rendered)?;
+
+    Ok(ExportResult {
+        path: path_to_string(path),
+        file_count: 1,
+    })
+}
+
 async fn get_project(pool: &SqlitePool, project_id: &str) -> AppResult<ExportProject> {
     let row = sqlx::query_as::<_, ExportProject>(
         "SELECT id, name, description, target_word_count
@@ -115,9 +153,21 @@ async fn get_project(pool: &SqlitePool, project_id: &str) -> AppResult<ExportPro
     row.ok_or_else(|| AppError::NotFound(format!("project {project_id}")))
 }
 
+async fn get_chapter(pool: &SqlitePool, chapter_id: &str) -> AppResult<ExportChapter> {
+    let row = sqlx::query_as::<_, ExportChapter>(
+        "SELECT id, project_id, parent_id, sort, title, content_json, word_count
+         FROM chapters
+         WHERE id = ?",
+    )
+    .bind(chapter_id)
+    .fetch_optional(pool)
+    .await?;
+    row.ok_or_else(|| AppError::NotFound(format!("chapter {chapter_id}")))
+}
+
 async fn list_chapters(pool: &SqlitePool, project_id: &str) -> AppResult<Vec<ExportChapter>> {
     let rows = sqlx::query_as::<_, ExportChapter>(
-        "SELECT id, parent_id, sort, title, content_json, word_count
+        "SELECT id, project_id, parent_id, sort, title, content_json, word_count
          FROM chapters
          WHERE project_id = ?",
     )
@@ -169,6 +219,29 @@ fn push_children(
     }
 }
 
+fn collect_ordered_subtree(
+    ordered: &[(ExportChapter, usize)],
+    root_id: &str,
+) -> Vec<(ExportChapter, usize)> {
+    let Some(root_index) = ordered
+        .iter()
+        .position(|(chapter, _)| chapter.id == root_id)
+    else {
+        return Vec::new();
+    };
+    let root_depth = ordered[root_index].1;
+    let mut subtree = Vec::new();
+
+    for (chapter, depth) in ordered.iter().skip(root_index) {
+        if !subtree.is_empty() && *depth <= root_depth {
+            break;
+        }
+        subtree.push((chapter.clone(), depth.saturating_sub(root_depth)));
+    }
+
+    subtree
+}
+
 fn render_project(
     project: &ExportProject,
     chapters: &[(ExportChapter, usize)],
@@ -216,6 +289,20 @@ fn render_project(
         out.push('\n');
     }
 
+    out.trim_end().to_string() + "\n"
+}
+
+fn render_chapter_export(
+    root: &ExportChapter,
+    chapters: &[(ExportChapter, usize)],
+    format: ExportFormat,
+) -> String {
+    let mut out = String::new();
+    for (chapter, depth) in chapters {
+        let normalized_depth = if chapter.id == root.id { 0 } else { *depth };
+        out.push_str(&render_chapter(chapter, normalized_depth, format, false));
+        out.push('\n');
+    }
     out.trim_end().to_string() + "\n"
 }
 

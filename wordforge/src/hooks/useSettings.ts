@@ -104,3 +104,25 @@ export function useExportProject() {
     },
   });
 }
+
+export function useExportChapter() {
+  return useMutation({
+    mutationFn: settingsRepo.exportChapter,
+    onSuccess: (result) => {
+      toast.success("章节导出完成", {
+        description: result.path,
+        action: {
+          label: "打开位置",
+          onClick: () => {
+            revealItemInDir(result.path).catch((error) => {
+              toast.error(error instanceof Error ? error.message : "打开导出位置失败");
+            });
+          },
+        },
+      });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "导出章节失败");
+    },
+  });
+}

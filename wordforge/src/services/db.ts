@@ -48,6 +48,8 @@ export const chaptersRepo = {
   create: (input: { projectId: string; parentId?: string | null; title: string }) =>
     invoke<Chapter>("create_chapter", input),
 
+  duplicate: (input: { id: string }) => invoke<Chapter>("duplicate_chapter", input),
+
   rename: (input: { id: string; title: string }) => invoke<void>("rename_chapter", input),
 
   setStatus: (input: { id: string; status: ChapterStatus }) =>
@@ -123,4 +125,7 @@ export const settingsRepo = {
 
   exportProject: (input: { projectId: string; format: ExportFormat; mode: ExportMode }) =>
     invoke<ExportResult>("export_project", input),
+
+  exportChapter: (input: { chapterId: string; format: ExportFormat }) =>
+    invoke<ExportResult>("export_chapter", input),
 };

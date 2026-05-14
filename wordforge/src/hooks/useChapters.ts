@@ -68,6 +68,19 @@ export function useCreateChapter(projectId: string) {
   });
 }
 
+export function useDuplicateChapter(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: chaptersRepo.duplicate,
+    onSuccess: (chapter) => {
+      qc.invalidateQueries({ queryKey: chaptersKey(projectId) });
+      qc.setQueryData(chapterKey(chapter.id), chapter);
+      toast.success("章节已复制");
+    },
+    onError: (e) => toast.error(`复制失败：${errMsg(e)}`),
+  });
+}
+
 export function useRenameChapter(projectId: string) {
   const qc = useQueryClient();
   return useMutation({

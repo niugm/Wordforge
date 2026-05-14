@@ -4,6 +4,8 @@ import {
   ChevronRight,
   CircleCheck,
   CircleDot,
+  Copy,
+  Download,
   FileText,
   FolderOpen,
   GripVertical,
@@ -42,7 +44,13 @@ import { DeleteChapterAlert } from "@/components/chapters/DeleteChapterAlert";
 import { MoveChapterDialog } from "@/components/chapters/MoveChapterDialog";
 import { NewChapterDialog } from "@/components/chapters/NewChapterDialog";
 import { RenameChapterDialog } from "@/components/chapters/RenameChapterDialog";
-import { useChapters, useReorderChapters, useSetChapterStatus } from "@/hooks/useChapters";
+import {
+  useChapters,
+  useDuplicateChapter,
+  useReorderChapters,
+  useSetChapterStatus,
+} from "@/hooks/useChapters";
+import { useExportChapter } from "@/hooks/useSettings";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import type { Chapter, ChapterStatus } from "@/types/db";
@@ -89,6 +97,8 @@ export function ChapterTree() {
 
   const { data: chapters, isLoading, error } = useChapters(projectId);
   const reorder = useReorderChapters(projectId ?? "");
+  const duplicate = useDuplicateChapter(projectId ?? "");
+  const exportChapter = useExportChapter();
 
   const tree = useMemo(() => buildTree(chapters ?? []), [chapters]);
 
@@ -225,6 +235,18 @@ export function ChapterTree() {
                 onMove={setMoveTarget}
                 onDelete={setDeleteTarget}
                 onMoveSibling={moveSibling}
+                onDuplicate={(node) =>
+                  duplicate.mutate(
+                    { id: node.id },
+                    {
+                      onSuccess: (chapter) => {
+                        setCurrentChapter(chapter.id);
+                        navigate(`/workspace/chapter/${chapter.id}`);
+                      },
+                    },
+                  )
+                }
+                onExport={(node, format) => exportChapter.mutate({ chapterId: node.id, format })}
               />
             ))}
           </ul>
@@ -281,6 +303,8 @@ type NodeProps = {
   onRename: (node: TreeNode) => void;
   onMove: (node: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
+  onDuplicate: (node: TreeNode) => void;
+  onExport: (node: TreeNode, format: "markdown" | "plainText") => void;
   onMoveSibling: (id: string, direction: "up" | "down") => void;
 };
 
@@ -295,6 +319,8 @@ function ChapterNode({
   onRename,
   onMove,
   onDelete,
+  onDuplicate,
+  onExport,
   onMoveSibling,
 }: NodeProps) {
   const hasChildren = node.children.length > 0;
@@ -398,6 +424,24 @@ function ChapterNode({
             <FolderOpen className="mr-2 h-4 w-4" />
             移动到...
           </ContextMenuItem>
+          <ContextMenuItem onSelect={() => onDuplicate(node)}>
+            <Copy className="mr-2 h-4 w-4" />
+            复制章节
+          </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Download className="mr-2 h-4 w-4" />
+              导出章节
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              <ContextMenuItem onSelect={() => onExport(node, "markdown")}>
+                Markdown
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => onExport(node, "plainText")}>
+                纯文本
+              </ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <CircleDot className="mr-2 h-4 w-4" />
@@ -457,6 +501,8 @@ function ChapterNode({
                 onRename={onRename}
                 onMove={onMove}
                 onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onExport={onExport}
                 onMoveSibling={onMoveSibling}
               />
             ))}

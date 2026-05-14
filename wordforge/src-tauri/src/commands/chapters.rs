@@ -51,6 +51,11 @@ pub async fn create_chapter(
 }
 
 #[tauri::command]
+pub async fn duplicate_chapter(pool: State<'_, SqlitePool>, id: String) -> AppResult<Chapter> {
+    chapters::duplicate(pool.inner(), &id).await
+}
+
+#[tauri::command]
 pub async fn rename_chapter(
     pool: State<'_, SqlitePool>,
     id: String,
