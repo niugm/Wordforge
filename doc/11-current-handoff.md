@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已提交至 `6f4b31c`；之后继续做 UI 精修阶段 1）
+> 更新时间：2026-05-15（已完成 UI 精修阶段 2；之后继续做 UI 精修阶段 3）
 
 ## 当前分支状态
 
@@ -13,7 +13,9 @@
 - `5bda4d9 feat: add chapter body search` 已提交。
 - `c7a79ca feat: show paragraph words and grouped search` 已提交。
 - `6f4b31c fix: update scope word count on selection` 已提交。
-- 当前工作树包含 UI 精修阶段 1 的未提交改动。
+- `14a86a3 style: polish workspace shell` 已提交。
+- `style: refine chapter tree` 已提交。
+- 当前工作树干净。
 
 ## 本轮已完成
 
@@ -70,6 +72,14 @@
 - 左侧栏 Tab、右侧栏 Tab、Footer 字数区、TitleBar 面包屑接入 lucide 语义图标。
 - TitleBar 分隔符弱化，Footer 字数信息改为图标化显示。
 
+### UI 精修阶段 2
+
+- ChapterTree 顶部标题接入 `BookOpen` 图标与轻量分隔线。
+- 章节节点按层级状态区分图标：父章节关闭为 `Folder`，展开为 `FolderOpen`，叶子章节为 `FileText`。
+- 章节树选中态改为更柔和的圆角背景与轻微阴影，hover/focus 状态更细。
+- 拖拽手柄改为 hover 渐显，当前章节保留弱可见提示。
+- 草稿 / 修订中 / 已完成状态点降低饱和度，并增加背景 ring，视觉上更稳。
+
 ### 章节缓存同步修复
 
 - 修复右键修改章节状态后，编辑区顶部状态徽标不实时同步的问题。
@@ -96,6 +106,12 @@
 - `wordforge/src/hooks/useChapters.ts`
 - `wordforge/src/services/db.ts`
 - `wordforge/src/types/db.ts`
+- `wordforge/src/components/ui/icon-label.tsx`
+- `wordforge/src/components/workspace/TitleBar.tsx`
+- `wordforge/src/components/workspace/Footer.tsx`
+- `wordforge/src/components/workspace/LeftSidebar.tsx`
+- `wordforge/src/components/workspace/RightSidebar.tsx`
+- `wordforge/src/components/workspace/panels/ChapterTree.tsx`
 - `doc/07-features.md`
 - `doc/08-roadmap.md`
 
@@ -119,6 +135,6 @@
 
 ## 建议下一步
 
-1. 提交当前 UI 精修阶段 1 改动，建议提交信息：`style: polish workspace shell`
-2. 接着优先补 F15 Actions 实跑问题，或者做 F13 导出深化（文件选择器 / Docx）。
+1. 继续 UI 精修阶段 3：SearchDialog / CommandPalette 的图标、分组、空状态和结果密度。
+2. 之后可做 SettingsDialog 精修，或回到 F13 导出深化（文件选择器 / Docx）。
 3. 如果继续 AI 方向，先处理密钥存储安全，再做 F6 段落精修。

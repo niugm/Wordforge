@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  BookOpen,
   ChevronDown,
   ChevronRight,
   CircleCheck,
@@ -7,6 +8,7 @@ import {
   Copy,
   Download,
   FileText,
+  Folder,
   FolderOpen,
   GripVertical,
   Pencil,
@@ -30,6 +32,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
+import { IconLabel } from "@/components/ui/icon-label";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -84,9 +87,9 @@ function countDescendants(node: TreeNode): number {
 }
 
 const STATUS_META: Record<ChapterStatus, { label: string; dotClass: string }> = {
-  draft: { label: "草稿", dotClass: "bg-muted-foreground/40" },
-  revising: { label: "修订中", dotClass: "bg-amber-500" },
-  done: { label: "已完成", dotClass: "bg-emerald-500" },
+  draft: { label: "草稿", dotClass: "bg-muted-foreground/35" },
+  revising: { label: "修订中", dotClass: "bg-amber-500/90" },
+  done: { label: "已完成", dotClass: "bg-emerald-500/90" },
 };
 
 export function ChapterTree() {
@@ -185,10 +188,14 @@ export function ChapterTree() {
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between px-2 py-1">
-        <span className="text-xs font-medium text-muted-foreground">
+      <div className="flex items-center justify-between border-b border-border/60 px-2 py-1.5">
+        <IconLabel
+          icon={BookOpen}
+          className="text-xs font-medium text-muted-foreground"
+          iconClassName="h-3.5 w-3.5"
+        >
           章节（{chapters?.length ?? 0}）
-        </span>
+        </IconLabel>
         <Button
           size="icon"
           variant="ghost"
@@ -327,6 +334,7 @@ function ChapterNode({
   const isOpen = expanded.has(node.id);
   const isCurrent = currentChapterId === node.id;
   const statusMeta = STATUS_META[node.status];
+  const ChapterIcon = hasChildren ? (isOpen ? FolderOpen : Folder) : FileText;
   const setStatus = useSetChapterStatus(node.projectId);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -360,16 +368,20 @@ function ChapterNode({
             role="button"
             tabIndex={0}
             className={cn(
-              "group flex cursor-pointer items-center gap-1 px-2 py-1 text-sm hover:bg-accent",
-              isCurrent && "bg-accent",
+              "group relative flex cursor-pointer items-center gap-1.5 rounded-md py-1.5 pr-2 text-sm outline-none transition-colors hover:bg-accent/70 focus-visible:ring-2 focus-visible:ring-ring/40",
+              isCurrent && "bg-accent/80 text-accent-foreground shadow-sm",
+              isDragging && "bg-accent/60",
             )}
-            style={{ paddingLeft: 8 + depth * 14 }}
+            style={{ marginLeft: 4 + depth * 14, paddingLeft: 6 }}
             onClick={() => onOpen(node)}
             onKeyDown={handleKeyDown}
           >
             <button
               type="button"
-              className="flex h-4 w-4 shrink-0 cursor-grab items-center justify-center text-muted-foreground/40 opacity-0 hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
+              className={cn(
+                "flex h-4 w-4 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/35 opacity-0 transition-opacity hover:bg-background/70 hover:text-foreground group-hover:opacity-100 active:cursor-grabbing",
+                isCurrent && "opacity-60",
+              )}
               aria-label="拖拽排序"
               {...attributes}
               {...listeners}
@@ -381,7 +393,7 @@ function ChapterNode({
             {hasChildren ? (
               <button
                 type="button"
-                className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggle(node.id);
@@ -398,14 +410,23 @@ function ChapterNode({
               <span className="h-4 w-4 shrink-0" />
             )}
 
-            <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <ChapterIcon
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 text-muted-foreground/80",
+                hasChildren && "text-muted-foreground",
+                isCurrent && "text-foreground",
+              )}
+            />
 
             <span className="min-w-0 flex-1 truncate" title={node.title}>
               {node.title}
             </span>
 
             <span
-              className={cn("h-2 w-2 shrink-0 rounded-full", statusMeta.dotClass)}
+              className={cn(
+                "h-2 w-2 shrink-0 rounded-full ring-2 ring-background",
+                statusMeta.dotClass,
+              )}
               title={statusMeta.label}
               aria-label={`状态：${statusMeta.label}`}
             />

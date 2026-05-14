@@ -26,10 +26,10 @@
 | 功能模块 | 实现细节 |
 |---|---|
 | **脚手架** | Tauri 2 + React 19 + Vite + TypeScript；Tailwind v4 + shadcn/ui (Radix Nova)；Zustand + TanStack Query + React Router v7 |
-| **UI 骨架** | 三栏 Workspace（左侧边栏 / 编辑区 / 右侧边栏）；resizable panels（v4 API）；ThemeProvider（亮/暗/护眼）；CommandPalette / SettingsDialog / SearchDialog 框架；Workspace shell 已接入语义图标（左右 Tab、Footer 字数区、TitleBar 面包屑） |
+| **UI 骨架** | 三栏 Workspace（左侧边栏 / 编辑区 / 右侧边栏）；resizable panels（v4 API）；ThemeProvider（亮/暗/护眼）；CommandPalette / SettingsDialog / SearchDialog 框架；Workspace shell 已接入语义图标（左右 Tab、Footer 字数区、TitleBar 面包屑）；章节树完成第一轮视觉精修 |
 | **数据库** | SQLite via sqlx 直连（非 plugin-sql）；ULID 主键；unix ms 时间戳；AppError 统一错误序列化；`sqlx::migrate!` 自动迁移；完整 schema（projects / chapters / characters / outlines / annotations / revisions / writing_sessions / ai_messages / settings / ai_credentials / chapters_fts） |
 | **F1 项目管理** | 新建 / 重命名 / 编辑信息（简介+目标字数）/ 归档 / 删除；启动自动回跳 last_project_id；切换作品按钮；OS 窗口标题跟随项目 |
-| **F2 章节管理** | 树形 CRUD；dnd-kit 同级拖拽排序；Alt+↑↓ 键盘排序；状态标记（草稿/修订中/已完成）；跨父节点移动（MoveChapterDialog）；Rust 侧禁止移动到自身/后代节点下并禁止跨作品挂载；右键菜单完整；章节状态 / 重命名 / 移动后同步章节树与编辑区详情缓存；支持复制章节树与单章节 Markdown / Plain Text 导出 |
+| **F2 章节管理** | 树形 CRUD；dnd-kit 同级拖拽排序；Alt+↑↓ 键盘排序；状态标记（草稿/修订中/已完成）；跨父节点移动（MoveChapterDialog）；Rust 侧禁止移动到自身/后代节点下并禁止跨作品挂载；右键菜单完整；章节状态 / 重命名 / 移动后同步章节树与编辑区详情缓存；支持复制章节树与单章节 Markdown / Plain Text 导出；章节树区分文件夹/文档图标，选中态、拖拽手柄和状态点已做轻量视觉精修 |
 | **F3 角色管理** | characters 表已接入 Rust CRUD + Tauri IPC；前端 repo/hooks；左侧栏角色 Tab；角色卡支持姓名、别名、身份、头像路径、画像 Markdown、自定义属性 JSON；卡片/列表视图切换 |
 | **F4 大纲管理** | outline_nodes 表已接入 Rust CRUD + Tauri IPC；前端 repo/hooks；左侧栏大纲 Tab；自由层级树；支持节点标题、Markdown 内容、状态、同级排序、跨父节点移动、删除；Rust 侧防环与跨作品校验 |
 | **F5 编辑器** | TipTap v3 + StarterKit + CharacterCount + Underline + BubbleMenu；固定工具栏（H1-3/B/I/U/S/列表/引用/代码块/分割线）；选中文字浮动菜单（B/I/U/S）；500ms debounce 自动保存 + 卸载兜底；保存状态指示；TitleBar 面包屑动态；专注模式隐藏侧栏/标题栏/页脚并保留退出浮层 |
