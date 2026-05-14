@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-14 22:50（`95d3e8f`、`4d04b91`、`8be6e2a`、`8a933fd` 已提交；之后继续补了 F10 正文检索）
+> 更新时间：2026-05-14 22:50（`95d3e8f`、`4d04b91`、`8be6e2a`、`8a933fd`、`5bda4d9` 已提交；之后继续补了 F8 本段字数与 F10 分类展示）
 
 ## 当前分支状态
 
@@ -10,7 +10,8 @@
 - `4d04b91 feat: improve export discovery` 已提交。
 - `8be6e2a feat: enable automatic database backups` 已提交。
 - `8a933fd feat: add chapter copy and export` 已提交。
-- 当前工作树包含 F10 章节正文 FTS5 检索的未提交改动。
+- `5bda4d9 feat: add chapter body search` 已提交。
+- 当前工作树包含 F8 本段字数与 F10 分类展示的未提交改动。
 
 ## 本轮已完成
 
@@ -54,6 +55,12 @@
 - 新增 Rust `db::search` / `commands::search`，通过 SQLite FTS5 检索章节正文。
 - SearchDialog 合并章节标题/摘要、角色、大纲和正文命中结果。
 - 章节保存时将 TipTap JSON 提取为纯文本写入 `chapters_fts`。
+- SearchDialog 结果按章节 / 正文 / 角色 / 大纲分组。
+
+### F8 本段字数
+
+- Footer 新增“本段字数”。
+- 编辑器输入或移动光标时，按当前字数计数模式统计光标所在段落。
 
 ### 章节缓存同步修复
 
@@ -104,6 +111,6 @@
 
 ## 建议下一步
 
-1. 提交当前 F10 正文检索改动，建议提交信息：`feat: add chapter body search`
+1. 提交当前 F8/F10 增强改动，建议提交信息：`feat: show paragraph words and grouped search`
 2. 接着优先补 F15 Actions 实跑问题，或者做 F13 导出深化（文件选择器 / Docx）。
 3. 如果继续 AI 方向，先处理密钥存储安全，再做 F6 段落精修。

@@ -92,6 +92,15 @@ function getEditorWordCount(editor: Editor, mode: Parameters<typeof countWriting
   return countWritingText(editor.getText(), mode);
 }
 
+function getCurrentParagraphWordCount(
+  editor: Editor,
+  mode: Parameters<typeof countWritingText>[1],
+) {
+  const { $from } = editor.state.selection;
+  const text = $from.parent.textContent;
+  return countWritingText(text, mode);
+}
+
 type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
 
 function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialContent: string }) {
@@ -99,6 +108,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const startSession = useStartSession();
   const endSession = useEndSession(chapter.projectId);
   const setLiveWordCount = useUIStore((s) => s.setLiveWordCount);
+  const setLiveParagraphWords = useUIStore((s) => s.setLiveParagraphWords);
   const setLiveSessionWords = useUIStore((s) => s.setLiveSessionWords);
   const editorPreferences = useUIStore((s) => s.editorPreferences);
   const wordCountMode = useUIStore((s) => s.wordCountMode);
@@ -178,6 +188,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       saveNow(editorRef.current);
       endWritingSession();
       setLiveWordCount(null);
+      setLiveParagraphWords(null);
       setLiveSessionWords(0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -201,6 +212,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       }
       setWordCount(chars);
       setLiveWordCount(chars);
+      setLiveParagraphWords(getCurrentParagraphWordCount(editor, wordCountMode));
       currentWordsRef.current = chars;
       setLiveSessionWords(chars - sessionStartWordsRef.current);
       scheduleIdleSessionEnd();
@@ -209,6 +221,9 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       saveTimer.current = setTimeout(() => {
         saveNow(editor);
       }, AUTOSAVE_MS);
+    },
+    onSelectionUpdate: ({ editor }) => {
+      setLiveParagraphWords(getCurrentParagraphWordCount(editor, wordCountMode));
     },
   });
 
@@ -222,14 +237,16 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       const chars = getEditorWordCount(editor, wordCountMode);
       setWordCount(chars);
       setLiveWordCount(chars);
+      setLiveParagraphWords(getCurrentParagraphWordCount(editor, wordCountMode));
       currentWordsRef.current = chars;
       setLiveSessionWords(chars - sessionStartWordsRef.current);
     }, 0);
     return () => clearTimeout(timer);
-  }, [editor, setLiveSessionWords, setLiveWordCount, wordCountMode]);
+  }, [editor, setLiveParagraphWords, setLiveSessionWords, setLiveWordCount, wordCountMode]);
 
   useEffect(() => {
     setLiveWordCount(chapter.wordCount);
+    setLiveParagraphWords(0);
     setLiveSessionWords(0);
     return () => {
       if (saveTimer.current) {

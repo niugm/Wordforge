@@ -19,7 +19,7 @@ import { useWorkspaceStore, type LeftPanelTab } from "@/store/useWorkspaceStore"
 
 type SearchResult = {
   id: string;
-  kind: "chapter" | "character" | "outline";
+  kind: "chapter" | "chapterBody" | "character" | "outline";
   title: string;
   subtitle: string;
   text: string;
@@ -33,9 +33,17 @@ type SearchSource = Omit<SearchResult, "snippet"> & { snippet?: string };
 
 const KIND_LABEL: Record<SearchResult["kind"], string> = {
   chapter: "章节",
+  chapterBody: "正文",
   character: "角色",
   outline: "大纲",
 };
+
+const RESULT_GROUPS: Array<{ kind: SearchResult["kind"]; label: string }> = [
+  { kind: "chapter", label: "章节" },
+  { kind: "chapterBody", label: "正文" },
+  { kind: "character", label: "角色" },
+  { kind: "outline", label: "大纲" },
+];
 
 export function SearchDialog() {
   const open = useUIStore((s) => s.searchOpen);
@@ -87,7 +95,7 @@ export function SearchDialog() {
       })),
       ...(bodyResults ?? []).map((result) => ({
         id: `body-${result.chapterId}`,
-        kind: "chapter" as const,
+        kind: "chapterBody" as const,
         title: result.title,
         subtitle: "正文命中",
         text: stripMarkup(result.snippet),
@@ -144,44 +152,91 @@ export function SearchDialog() {
             </p>
           )}
           {results.length > 0 && (
-            <ul className="max-h-96 divide-y overflow-auto">
-              {results.map((result) => (
-                <li key={`${result.kind}-${result.id}`}>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent"
-                    onClick={() => openResult(result)}
-                  >
-                    <span className="text-muted-foreground">{result.icon}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{result.title}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {KIND_LABEL[result.kind]} · {result.subtitle}
-                      </span>
-                      {result.snippet && (
-                        <span className="mt-1 block truncate text-xs text-muted-foreground">
-                          <HighlightedText text={result.snippet} query={query} />
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground",
-                        result.kind === "chapter" && "border-blue-500/30",
-                        result.kind === "character" && "border-emerald-500/30",
-                        result.kind === "outline" && "border-amber-500/30",
-                      )}
-                    >
-                      {KIND_LABEL[result.kind]}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <SearchResultGroups results={results} query={query} onOpen={openResult} />
           )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SearchResultGroups({
+  results,
+  query,
+  onOpen,
+}: {
+  results: SearchResult[];
+  query: string;
+  onOpen: (result: SearchResult) => void;
+}) {
+  return (
+    <ul className="max-h-96 divide-y overflow-auto">
+      {RESULT_GROUPS.map((group) => {
+        const groupResults = results.filter((result) => result.kind === group.kind);
+        if (groupResults.length === 0) return null;
+        return (
+          <li key={group.kind} className="py-1">
+            <div className="px-3 py-1 text-[11px] font-medium text-muted-foreground">
+              {group.label}（{groupResults.length}）
+            </div>
+            <ul>
+              {groupResults.map((result) => (
+                <SearchResultItem
+                  key={`${result.kind}-${result.id}`}
+                  result={result}
+                  query={query}
+                  onOpen={onOpen}
+                />
+              ))}
+            </ul>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function SearchResultItem({
+  result,
+  query,
+  onOpen,
+}: {
+  result: SearchResult;
+  query: string;
+  onOpen: (result: SearchResult) => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent"
+        onClick={() => onOpen(result)}
+      >
+        <span className="text-muted-foreground">{result.icon}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm">{result.title}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {KIND_LABEL[result.kind]} · {result.subtitle}
+          </span>
+          {result.snippet && (
+            <span className="mt-1 block truncate text-xs text-muted-foreground">
+              <HighlightedText text={result.snippet} query={query} />
+            </span>
+          )}
+        </span>
+        <span
+          className={cn(
+            "rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground",
+            result.kind === "chapter" && "border-blue-500/30",
+            result.kind === "chapterBody" && "border-sky-500/30",
+            result.kind === "character" && "border-emerald-500/30",
+            result.kind === "outline" && "border-amber-500/30",
+          )}
+        >
+          {KIND_LABEL[result.kind]}
+        </span>
+      </button>
+    </li>
   );
 }
 

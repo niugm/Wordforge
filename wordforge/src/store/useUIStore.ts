@@ -28,6 +28,7 @@ type UIState = {
   searchOpen: boolean;
   focusMode: boolean;
   liveWordCount: number | null;
+  liveParagraphWords: number | null;
   liveSessionWords: number;
 
   setTheme: (theme: Theme) => void;
@@ -42,6 +43,7 @@ type UIState = {
   setSettings: (open: boolean) => void;
   setSearch: (open: boolean) => void;
   setLiveWordCount: (n: number | null) => void;
+  setLiveParagraphWords: (n: number | null) => void;
   setLiveSessionWords: (n: number) => void;
 };
 
@@ -56,6 +58,7 @@ export const useUIStore = create<UIState>()(
       searchOpen: false,
       focusMode: false,
       liveWordCount: null,
+      liveParagraphWords: null,
       liveSessionWords: 0,
 
       setTheme: (theme) => set({ theme }),
@@ -71,6 +74,7 @@ export const useUIStore = create<UIState>()(
       setSettings: (open) => set({ settingsOpen: open }),
       setSearch: (open) => set({ searchOpen: open }),
       setLiveWordCount: (n) => set({ liveWordCount: n }),
+      setLiveParagraphWords: (n) => set({ liveParagraphWords: n }),
       setLiveSessionWords: (n) => set({ liveSessionWords: Math.max(0, n) }),
     }),
     {

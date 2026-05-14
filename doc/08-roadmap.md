@@ -33,8 +33,8 @@
 | **F3 角色管理** | characters 表已接入 Rust CRUD + Tauri IPC；前端 repo/hooks；左侧栏角色 Tab；角色卡支持姓名、别名、身份、头像路径、画像 Markdown、自定义属性 JSON；卡片/列表视图切换 |
 | **F4 大纲管理** | outline_nodes 表已接入 Rust CRUD + Tauri IPC；前端 repo/hooks；左侧栏大纲 Tab；自由层级树；支持节点标题、Markdown 内容、状态、同级排序、跨父节点移动、删除；Rust 侧防环与跨作品校验 |
 | **F5 编辑器** | TipTap v3 + StarterKit + CharacterCount + Underline + BubbleMenu；固定工具栏（H1-3/B/I/U/S/列表/引用/代码块/分割线）；选中文字浮动菜单（B/I/U/S）；500ms debounce 自动保存 + 卸载兜底；保存状态指示；TitleBar 面包屑动态；专注模式隐藏侧栏/标题栏/页脚并保留退出浮层 |
-| **F8 字数统计** | writing_sessions 生命周期（mount start / unmount end / 30 秒无输入自动结束）；再次输入自动开启新 session；localtime 时区修正；Footer 实时字数 + 今日累计（含当前编辑会话增量）；Dashboard：今日/本周/本月/连续写作卡片 + 全书目标进度条 + 30/90/365 天热力图 + Recharts 柱状图；设置中支持字符 / 不计空白 / 中英混合计数模式 |
-| **F10 基础搜索** | SearchDialog 已接入当前作品的章节标题/摘要、角色卡、大纲节点搜索；结果可跳转章节或切换左侧角色/大纲 Tab；前端结果显示命中片段并高亮关键词；章节正文接入 SQLite FTS5，保存时写入纯文本索引 |
+| **F8 字数统计** | writing_sessions 生命周期（mount start / unmount end / 30 秒无输入自动结束）；再次输入自动开启新 session；localtime 时区修正；Footer 实时字数 + 今日累计（含当前编辑会话增量）+ 本段字数；Dashboard：今日/本周/本月/连续写作卡片 + 全书目标进度条 + 30/90/365 天热力图 + Recharts 柱状图；设置中支持字符 / 不计空白 / 中英混合计数模式 |
+| **F10 基础搜索** | SearchDialog 已接入当前作品的章节标题/摘要、角色卡、大纲节点搜索；结果可跳转章节或切换左侧角色/大纲 Tab；前端结果显示命中片段并高亮关键词；章节正文接入 SQLite FTS5，保存时写入纯文本索引；结果按章节 / 正文 / 角色 / 大纲分组 |
 | **F11 命令面板** | CommandPalette 已接入真实数据；支持导航命令、设置/搜索操作、章节跳转、角色/大纲 Tab 切换；最近使用置顶并持久化最近 6 个项目 |
 | **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量；备份目录/自动备份开关写入 SQLite `settings` 表；AI Provider 配置支持 OpenAI 兼容 / Anthropic / Gemini，密钥只写不回显，前端仅显示配置状态 |
 | **F13 导出** | SettingsDialog 新增导出页；Rust 侧按章节树顺序导出当前作品；支持 Markdown / Plain Text，支持合并单文件与按章拆分；导出文件写入应用数据目录 `wordforge/exports`；导出完成后可从 toast 或导出页打开导出位置 |
@@ -54,7 +54,7 @@
 | P1 | F13 导出深化 | Docx 导出与文件选择器 |
 | P1 | F6 AI 精修 | 需先完成 F12 AI key 配置 |
 | P1 | F7 章节校审 | 需先完成 F6 |
-| P2 | F10 全文检索深化 | 按作品 / 类别分组，优化大稿件排序与高亮 |
+| P2 | F10 全文检索深化 | 优化大稿件排序与高亮 |
 
 ---
 
