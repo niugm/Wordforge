@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileText, LayoutList, Search, UserRound } from "lucide-react";
+import { FileSearch, FileText, LayoutList, Search, UserRound } from "lucide-react";
 import { useNavigate } from "react-router";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useCharacters } from "@/hooks/useCharacters";
 import { useChapters } from "@/hooks/useChapters";
 import { useOutlines } from "@/hooks/useOutlines";
+import { useChapterBodySearch } from "@/hooks/useSearch";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/useUIStore";
 import { useWorkspaceStore, type LeftPanelTab } from "@/store/useWorkspaceStore";
@@ -28,7 +29,7 @@ type SearchResult = {
   chapterId?: string;
 };
 
-type SearchSource = Omit<SearchResult, "snippet">;
+type SearchSource = Omit<SearchResult, "snippet"> & { snippet?: string };
 
 const KIND_LABEL: Record<SearchResult["kind"], string> = {
   chapter: "章节",
@@ -47,6 +48,10 @@ export function SearchDialog() {
   const { data: chapters } = useChapters(currentProjectId);
   const { data: characters } = useCharacters(currentProjectId);
   const { data: outlines } = useOutlines(currentProjectId);
+  const { data: bodyResults, isFetching: bodySearching } = useChapterBodySearch(
+    currentProjectId,
+    query,
+  );
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,12 +85,23 @@ export function SearchDialog() {
         icon: <LayoutList className="h-4 w-4" />,
         tab: "outline" as const,
       })),
+      ...(bodyResults ?? []).map((result) => ({
+        id: `body-${result.chapterId}`,
+        kind: "chapter" as const,
+        title: result.title,
+        subtitle: "正文命中",
+        text: stripMarkup(result.snippet),
+        snippet: stripMarkup(result.snippet),
+        icon: <FileSearch className="h-4 w-4" />,
+        tab: "chapters" as const,
+        chapterId: result.chapterId,
+      })),
     ];
     return haystack
       .filter((item) => item.text.toLowerCase().includes(q))
-      .map((item) => ({ ...item, snippet: buildSnippet(item.text, q) }))
+      .map((item) => ({ ...item, snippet: item.snippet || buildSnippet(item.text, q) }))
       .slice(0, 50);
-  }, [chapters, characters, outlines, query]);
+  }, [bodyResults, chapters, characters, outlines, query]);
 
   function openResult(result: SearchResult) {
     setSearch(false);
@@ -123,7 +139,9 @@ export function SearchDialog() {
             <p className="p-4 text-sm text-muted-foreground">输入关键词开始搜索。</p>
           )}
           {currentProjectId && query.trim() && results.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground">没有匹配结果。</p>
+            <p className="p-4 text-sm text-muted-foreground">
+              {bodySearching ? "搜索中..." : "没有匹配结果。"}
+            </p>
           )}
           {results.length > 0 && (
             <ul className="max-h-96 divide-y overflow-auto">
@@ -174,6 +192,10 @@ function buildSnippet(text: string, query: string) {
   const start = Math.max(0, index - 30);
   const end = Math.min(normalized.length, index + query.length + 30);
   return `${start > 0 ? "..." : ""}${normalized.slice(start, end)}${end < normalized.length ? "..." : ""}`;
+}
+
+function stripMarkup(text: string) {
+  return text.replace(/<\/?mark>/g, "");
 }
 
 function HighlightedText({ text, query }: { text: string; query: string }) {

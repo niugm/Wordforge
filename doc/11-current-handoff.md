@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-14 22:50（`95d3e8f`、`4d04b91`、`8be6e2a` 已提交；之后继续补了 F2 章节复制与单章导出）
+> 更新时间：2026-05-14 22:50（`95d3e8f`、`4d04b91`、`8be6e2a`、`8a933fd` 已提交；之后继续补了 F10 正文检索）
 
 ## 当前分支状态
 
@@ -9,7 +9,8 @@
 - `95d3e8f feat: add AI settings and project export` 已提交。
 - `4d04b91 feat: improve export discovery` 已提交。
 - `8be6e2a feat: enable automatic database backups` 已提交。
-- 当前工作树包含 F2 章节复制与单章导出的未提交改动。
+- `8a933fd feat: add chapter copy and export` 已提交。
+- 当前工作树包含 F10 章节正文 FTS5 检索的未提交改动。
 
 ## 本轮已完成
 
@@ -47,6 +48,12 @@
 
 - 章节右键菜单新增“复制章节”，会复制当前章节及其子章节、正文、字数与状态。
 - 章节右键菜单新增“导出章节”，支持 Markdown / Plain Text，导出当前章节及其子章节树。
+
+### F10 正文检索
+
+- 新增 Rust `db::search` / `commands::search`，通过 SQLite FTS5 检索章节正文。
+- SearchDialog 合并章节标题/摘要、角色、大纲和正文命中结果。
+- 章节保存时将 TipTap JSON 提取为纯文本写入 `chapters_fts`。
 
 ### 章节缓存同步修复
 
@@ -97,6 +104,6 @@
 
 ## 建议下一步
 
-1. 提交当前 F2 章节复制与单章导出改动，建议提交信息：`feat: add chapter copy and export`
+1. 提交当前 F10 正文检索改动，建议提交信息：`feat: add chapter body search`
 2. 接着优先补 F15 Actions 实跑问题，或者做 F13 导出深化（文件选择器 / Docx）。
 3. 如果继续 AI 方向，先处理密钥存储安全，再做 F6 段落精修。

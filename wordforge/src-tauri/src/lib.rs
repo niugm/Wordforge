@@ -80,6 +80,7 @@ pub fn run() {
             commands::settings::delete_ai_credential,
             commands::exports::export_project,
             commands::exports::export_chapter,
+            commands::search::search_chapter_body,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -110,6 +110,13 @@ export interface ExportResult {
   fileCount: number;
 }
 
+export interface ChapterSearchResult {
+  chapterId: string;
+  title: string;
+  snippet: string;
+  rank: number;
+}
+
 export interface AppErrorPayload {
   code: string;
   message: string;

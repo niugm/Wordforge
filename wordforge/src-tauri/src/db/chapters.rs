@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::SqlitePool;
 use ulid::Ulid;
 
@@ -32,6 +33,29 @@ fn validate_status(status: &str) -> AppResult<()> {
     }
 }
 
+fn extract_tiptap_text(raw: &str) -> String {
+    let Ok(doc) = serde_json::from_str::<Value>(raw) else {
+        return raw.to_string();
+    };
+    let mut out = String::new();
+    push_tiptap_text(&doc, &mut out);
+    out
+}
+
+fn push_tiptap_text(node: &Value, out: &mut String) {
+    if let Some(text) = node.get("text").and_then(Value::as_str) {
+        if !out.is_empty() {
+            out.push(' ');
+        }
+        out.push_str(text);
+    }
+    if let Some(content) = node.get("content").and_then(Value::as_array) {
+        for child in content {
+            push_tiptap_text(child, out);
+        }
+    }
+}
+
 pub async fn get_one(pool: &SqlitePool, id: &str) -> AppResult<Chapter> {
     let row = sqlx::query_as::<_, Chapter>(
         "SELECT id, project_id, parent_id, sort, title, summary,
@@ -60,6 +84,7 @@ pub async fn update_content(
     content_json: &str,
     word_count: i64,
 ) -> AppResult<()> {
+    let search_text = extract_tiptap_text(content_json);
     let result = sqlx::query(
         "UPDATE chapters
          SET content_json = ?, word_count = ?, updated_at = ?
@@ -74,6 +99,18 @@ pub async fn update_content(
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound(format!("chapter {id}")));
+    }
+    let fts_result = sqlx::query("UPDATE chapters_fts SET content = ? WHERE chapter_id = ?")
+        .bind(&search_text)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if fts_result.rows_affected() == 0 {
+        sqlx::query("INSERT INTO chapters_fts(chapter_id, content) VALUES (?, ?)")
+            .bind(id)
+            .bind(search_text)
+            .execute(pool)
+            .await?;
     }
     Ok(())
 }
@@ -208,6 +245,12 @@ pub async fn duplicate(pool: &SqlitePool, id: &str) -> AppResult<Chapter> {
         .bind(now)
         .execute(&mut *tx)
         .await?;
+
+        sqlx::query("UPDATE chapters_fts SET content = ? WHERE chapter_id = ?")
+            .bind(extract_tiptap_text(&item.content_json))
+            .bind(&new_id)
+            .execute(&mut *tx)
+            .await?;
 
         if is_root {
             duplicated_root = Some(Chapter {

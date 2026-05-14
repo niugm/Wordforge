@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   Chapter,
+  ChapterSearchResult,
   ChapterStatus,
   Character,
   CharacterInput,
@@ -128,4 +129,9 @@ export const settingsRepo = {
 
   exportChapter: (input: { chapterId: string; format: ExportFormat }) =>
     invoke<ExportResult>("export_chapter", input),
+};
+
+export const searchRepo = {
+  chapterBody: (input: { projectId: string; query: string; limit?: number }) =>
+    invoke<ChapterSearchResult[]>("search_chapter_body", input),
 };
