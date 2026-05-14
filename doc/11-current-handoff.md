@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已校准路线图状态，AI 功能调为高优先）
+> 更新时间：2026-05-15（已完成 AI 辅助写作产品设计）
 
 ## 当前分支状态
 
@@ -19,6 +19,7 @@
 - `style: polish settings dialog` 已提交。
 - `style: refine settings option cards` 已提交。
 - `feat: choose project export directory` 已提交。
+- `docs: prioritize AI work` 已提交。
 - 当前工作树干净。
 
 ## 本轮已完成
@@ -33,6 +34,18 @@
   - `list_ai_credentials`
   - `save_ai_credential`
   - `delete_ai_credential`
+
+### F6/F7 AI 辅助写作设计
+
+- 新增 `doc/12-ai-writing-design.md`。
+- 参考 Notion AI、Grammarly、Sudowrite 等成熟产品，确定 Wordforge 不做“自动替作者写完整章”，而做可控、可回滚的写作编辑搭档。
+- 第一阶段主链路：
+  1. AI Key 安全存储。
+  2. Rust 侧 `LlmProvider` 抽象。
+  3. OpenAI-compatible provider 首发。
+  4. 选区 / 当前段落精修。
+  5. 右侧 AI 面板结果卡，支持替换、插入、复制、重试。
+- 章节校审、脑暴、续写建议排在段落精修 MVP 之后。
 
 ### F13 基础导出
 
@@ -145,6 +158,7 @@
 - `wordforge/src/components/shell/CommandPalette.tsx`
 - `wordforge/src/components/shell/SearchDialog.tsx`
 - `wordforge/src/components/shell/SettingsDialog.tsx`
+- `doc/12-ai-writing-design.md`
 - `doc/07-features.md`
 - `doc/08-roadmap.md`
 
@@ -168,6 +182,6 @@
 
 ## 建议下一步
 
-1. AI 功能进入高优先级：先处理 AI Key 安全存储，再实现 LLM provider 抽象与段落精修调用链路。
-2. F13 后续只剩 Docx 导出，可排在 AI 主链路之后。
-3. F15 CI/CD 仍需首次 GitHub Actions 实跑验证。
+1. 按 `doc/12-ai-writing-design.md` 开始 AI 主链路：先做 AI Key 安全存储。
+2. 接着实现 Rust 侧 `LlmProvider` trait 和 OpenAI-compatible provider。
+3. 然后做 F6 段落精修 MVP：选区入口、右侧结果卡、替换/插入/复制。

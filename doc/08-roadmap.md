@@ -46,7 +46,7 @@
 
 | 优先级 | 功能 | 说明 |
 |---|---|---|
-| P0 | F6 AI 精修前置 | 先处理 AI Key 安全存储，再实现 LLM provider 抽象与段落精修调用链路 |
+| P0 | F6 AI 精修前置 | 已新增 `doc/12-ai-writing-design.md`；先处理 AI Key 安全存储，再实现 LLM provider 抽象与段落精修调用链路 |
 | P0 | F15 CI/CD | 首次 Actions 实跑验证；必要时修正 runner 依赖与产物命名 |
 | P1 | F5 编辑器深化 | 场景分割节点 / 注释 mark / IME 兼容测试 |
 | P1 | F3 角色关系深化 | character_relations 表已建；关系成对添加、`@姓名` 引用跳转、插入角色卡到当前段落 |
