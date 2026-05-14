@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   Bot,
@@ -158,6 +159,7 @@ export function SettingsDialog() {
   const [modelDraft, setModelDraft] = useState("");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("markdown");
   const [exportMode, setExportMode] = useState<ExportMode>("merged");
+  const [exportDir, setExportDir] = useState("");
   const [lastExport, setLastExport] = useState<ExportResult | null>(null);
 
   const backupDir = backupSettings.data?.backupDir ?? "";
@@ -188,6 +190,17 @@ export function SettingsDialog() {
     }, 0);
     return () => clearTimeout(timer);
   }, [activeProvider, selectedCredential?.baseUrl, selectedCredential?.model]);
+
+  async function chooseExportDir() {
+    const selected = await openDialog({
+      directory: true,
+      multiple: false,
+      title: "选择导出目录",
+    });
+    if (typeof selected === "string") {
+      setExportDir(selected);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={setSettings}>
@@ -536,7 +549,7 @@ export function SettingsDialog() {
               <SectionHeading
                 icon={FileDown}
                 title="导出当前作品"
-                description="导出文件会生成到应用数据目录下的 exports 文件夹。"
+                description="可选择导出目录；未选择时使用应用数据目录下的 exports 文件夹。"
               />
 
               <div className="rounded-md border bg-background p-3">
@@ -549,6 +562,36 @@ export function SettingsDialog() {
                     ? "导出会按当前章节树顺序生成文件。"
                     : "请先打开一个作品，再执行导出。"}
                 </p>
+              </div>
+
+              <div className="rounded-md border bg-background p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium">导出位置</p>
+                    <p
+                      className="mt-1 truncate text-xs text-muted-foreground"
+                      title={exportDir || undefined}
+                    >
+                      {exportDir || "默认：应用数据目录 / wordforge / exports"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    {exportDir && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExportDir("")}
+                      >
+                        使用默认
+                      </Button>
+                    )}
+                    <Button type="button" variant="outline" size="sm" onClick={chooseExportDir}>
+                      <FolderOpen className="h-4 w-4" />
+                      选择目录
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -593,6 +636,7 @@ export function SettingsDialog() {
                         projectId: currentProjectId,
                         format: exportFormat,
                         mode: exportMode,
+                        targetDir: exportDir || null,
                       },
                       {
                         onSuccess: setLastExport,

@@ -13,8 +13,17 @@ pub async fn export_project(
     project_id: String,
     format: String,
     mode: String,
+    target_dir: Option<String>,
 ) -> AppResult<ExportResult> {
-    exports::export_project(pool.inner(), app_data_dir.inner(), project_id, format, mode).await
+    exports::export_project(
+        pool.inner(),
+        app_data_dir.inner(),
+        project_id,
+        format,
+        mode,
+        target_dir,
+    )
+    .await
 }
 
 #[tauri::command]

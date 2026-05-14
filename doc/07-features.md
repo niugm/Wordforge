@@ -191,6 +191,7 @@
 
 - ✅ Markdown（每章一个 .md / 单文件合并）
 - ✅ Plain Text（每章一个 .txt / 单文件合并）
+- ✅ 导出目录选择（未选择时回退到应用数据目录 `wordforge/exports`）
 - ✅ 导出完成后可从 toast 或导出页打开导出位置
 - ⏳ Docx（pandoc 或 `docx-rs`）
 

@@ -124,7 +124,12 @@ export const settingsRepo = {
   deleteAiCredential: (input: { provider: AiProvider }) =>
     invoke<void>("delete_ai_credential", input),
 
-  exportProject: (input: { projectId: string; format: ExportFormat; mode: ExportMode }) =>
+  exportProject: (input: {
+    projectId: string;
+    format: ExportFormat;
+    mode: ExportMode;
+    targetDir?: string | null;
+  }) =>
     invoke<ExportResult>("export_project", input),
 
   exportChapter: (input: { chapterId: string; format: ExportFormat }) =>

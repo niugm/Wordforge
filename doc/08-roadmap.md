@@ -37,7 +37,7 @@
 | **F10 基础搜索** | SearchDialog 已接入当前作品的章节标题/摘要、角色卡、大纲节点搜索；结果可跳转章节或切换左侧角色/大纲 Tab；前端结果显示命中片段并高亮关键词；章节正文接入 SQLite FTS5，保存时写入纯文本索引；结果按章节 / 正文 / 角色 / 大纲分组；分组标题、结果图标徽块、空状态与加载态已精修 |
 | **F11 命令面板** | CommandPalette 已接入真实数据；支持导航命令、设置/搜索操作、章节跳转、角色/大纲 Tab 切换；最近使用置顶并持久化最近 6 个项目；命令项已改为图标徽块 + 主副文本结构，增强导航/操作/章节/角色/大纲的可扫读性 |
 | **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量；备份目录/自动备份开关写入 SQLite `settings` 表；AI Provider 配置支持 OpenAI 兼容 / Anthropic / Gemini，密钥只写不回显，前端仅显示配置状态；设置 Tab、分组标题、AI provider、备份开关、导出/字数选项卡片已完成语义图标和状态精修 |
-| **F13 导出** | SettingsDialog 新增导出页；Rust 侧按章节树顺序导出当前作品；支持 Markdown / Plain Text，支持合并单文件与按章拆分；导出文件写入应用数据目录 `wordforge/exports`；导出完成后可从 toast 或导出页打开导出位置 |
+| **F13 导出** | SettingsDialog 新增导出页；Rust 侧按章节树顺序导出当前作品；支持 Markdown / Plain Text，支持合并单文件与按章拆分；支持通过系统目录选择器指定导出目录，未选择时写入应用数据目录 `wordforge/exports`；导出完成后可从 toast 或导出页打开导出位置 |
 | **F14 备份** | 已接入备份设置读取/保存与手动立即备份；Rust 侧复制当前 SQLite DB 到指定目录并生成 `wordforge-时间戳.db`；应用启动后若已过本地时间 03:00，当天最多自动备份一次；保留最近 7 份备份 |
 | **F15 CI/CD** | 已新增 `.github/workflows/ci.yml` 与 `release.yml`；CI 在 push/PR 上执行 lint、前端 build、cargo fmt、clippy；release 在 tag `v*` 上生成 Tauri draft release（Windows + macOS universal） |
 | **UX 细节** | Sonner toast 全局（所有写操作成功/错误提示）；Bundle 拆分（manualChunks：vendor-react/tiptap/recharts/dnd/ui）；标题栏面包屑分隔线垂直居中；Shell 图标语义统一 |
@@ -51,7 +51,7 @@
 | P1 | F3 角色关系深化 | character_relations 表已建；关系成对添加、`@姓名` 引用跳转、插入角色卡到当前段落 |
 | P1 | F4 大纲深化 | 节点 ↔ 章节双向关联；大纲拖拽到章节树自动创建章节（需要新增绑定迁移） |
 | P1 | F9 批注 | annotations 表已建，mark 扩展 + 右侧面板 |
-| P1 | F13 导出深化 | Docx 导出与文件选择器 |
+| P1 | F13 导出深化 | Docx 导出 |
 | P1 | F6 AI 精修 | 需先完成 F12 AI key 配置 |
 | P1 | F7 章节校审 | 需先完成 F6 |
 | P2 | F10 全文检索深化 | 优化大稿件排序与高亮 |

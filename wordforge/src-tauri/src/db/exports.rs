@@ -52,6 +52,7 @@ pub async fn export_project(
     project_id: String,
     format: String,
     mode: String,
+    target_dir: Option<String>,
 ) -> AppResult<ExportResult> {
     let format = parse_format(&format)?;
     let mode = parse_mode(&mode)?;
@@ -64,7 +65,7 @@ pub async fn export_project(
         ExportFormat::PlainText => "txt",
     };
 
-    let export_root = app_data_dir.join("wordforge").join("exports").join(format!(
+    let export_root = export_base_dir(app_data_dir, target_dir.as_deref()).join(format!(
         "{}-{}",
         sanitize_filename(&project.name),
         now_ms()
@@ -679,4 +680,12 @@ fn sanitize_filename(value: &str) -> String {
 
 fn path_to_string(path: PathBuf) -> String {
     path.to_string_lossy().to_string()
+}
+
+fn export_base_dir(app_data_dir: &Path, target_dir: Option<&str>) -> PathBuf {
+    target_dir
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| app_data_dir.join("wordforge").join("exports"))
 }

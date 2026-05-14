@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已完成 UI 精修阶段 5；之后可继续功能开发或回到导出深化）
+> 更新时间：2026-05-15（已完成 F13 导出目录选择）
 
 ## 当前分支状态
 
@@ -18,6 +18,7 @@
 - `style: polish search and command surfaces` 已提交。
 - `style: polish settings dialog` 已提交。
 - `style: refine settings option cards` 已提交。
+- `feat: choose project export directory` 已提交。
 - 当前工作树干净。
 
 ## 本轮已完成
@@ -43,6 +44,7 @@
   - Plain Text 合并单文件
   - Plain Text 按章拆分
 - 导出目录：应用数据目录下 `wordforge/exports`。
+- 导出页已接入系统目录选择器，可指定导出目录；未选择时仍使用应用数据目录下 `wordforge/exports`。
 - 导出时按章节树顺序输出，并将 TipTap JSON 转为 Markdown / 纯文本。
 - 导出完成后 toast 提供“打开位置”，导出页显示最近一次导出并可打开位置。
 
@@ -123,6 +125,9 @@
 - `wordforge/src-tauri/src/commands/settings.rs`
 - `wordforge/src-tauri/src/db/exports.rs`
 - `wordforge/src-tauri/src/commands/exports.rs`
+- `wordforge/src-tauri/capabilities/default.json`
+- `wordforge/src-tauri/Cargo.toml`
+- `wordforge/src-tauri/Cargo.lock`
 - `wordforge/src-tauri/src/db/mod.rs`
 - `wordforge/src-tauri/src/commands/mod.rs`
 - `wordforge/src-tauri/src/lib.rs`
@@ -157,12 +162,12 @@
 ## 注意事项
 
 - AI Key 当前只是写入 `ai_credentials.ciphertext`，尚未接入 Stronghold/keyring 真加密；这是下一阶段 AI 调用前需要处理的安全债。
-- 导出目前不走系统文件选择器，先写入应用数据目录；后续可接入 dialog/fs 插件。
+- 导出已接入 `tauri-plugin-dialog` 做目录选择；未选择时仍写入应用数据目录。
 - Docx 导出仍未实现。
 - F15 CI/CD 还缺首次 GitHub Actions 实跑验证。
 
 ## 建议下一步
 
-1. 如果优先做功能，可实现 F13 文件选择器，让导出位置由用户选择。
+1. F13 后续只剩 Docx 导出。
 2. 若继续 AI 方向，先处理 AI Key 安全存储，再实现段落精修调用链路。
 3. UI 方向可继续编辑器工具栏 / Dashboard 图表区的细节精修。

@@ -56,7 +56,7 @@
 | `tauri-plugin-opener` | 已接入 | 在系统默认浏览器打开链接 |
 | `tauri-plugin-stronghold` | 计划 | 加密密钥库 |
 | `tauri-plugin-fs` | 计划 | 受控文件读写（封面 / 导出 / 备份） |
-| `tauri-plugin-dialog` | 计划 | 文件选择对话框 |
+| `tauri-plugin-dialog` | 已接入 | 文件 / 目录选择对话框（导出目录选择） |
 | `tauri-plugin-clipboard-manager` | 计划 | 剪贴板（粘贴格式化文本） |
 | `tauri-plugin-updater` | v0.2 | 自动更新 |
 | `tauri-plugin-window-state` | 计划 | 记住窗口大小/位置 |
