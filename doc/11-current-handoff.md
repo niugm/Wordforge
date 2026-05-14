@@ -1,11 +1,11 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已完成 F13 导出目录选择）
+> 更新时间：2026-05-15（已校准路线图状态，AI 功能调为高优先）
 
 ## 当前分支状态
 
 - 分支：`main`
-- 远端状态：`main...origin/main [ahead 2]`
+- 远端状态：`main...origin/main`（本地与远端同步）
 - `95d3e8f feat: add AI settings and project export` 已提交。
 - `4d04b91 feat: improve export discovery` 已提交。
 - `8be6e2a feat: enable automatic database backups` 已提交。
@@ -168,6 +168,6 @@
 
 ## 建议下一步
 
-1. F13 后续只剩 Docx 导出。
-2. 若继续 AI 方向，先处理 AI Key 安全存储，再实现段落精修调用链路。
-3. UI 方向可继续编辑器工具栏 / Dashboard 图表区的细节精修。
+1. AI 功能进入高优先级：先处理 AI Key 安全存储，再实现 LLM provider 抽象与段落精修调用链路。
+2. F13 后续只剩 Docx 导出，可排在 AI 主链路之后。
+3. F15 CI/CD 仍需首次 GitHub Actions 实跑验证。
