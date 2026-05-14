@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
 import { settingsRepo } from "@/services/db";
 import type { AiProvider } from "@/types/db";
@@ -88,6 +89,14 @@ export function useExportProject() {
     onSuccess: (result) => {
       toast.success(`导出完成：${result.fileCount} 个文件`, {
         description: result.path,
+        action: {
+          label: "打开位置",
+          onClick: () => {
+            revealItemInDir(result.path).catch((error) => {
+              toast.error(error instanceof Error ? error.message : "打开导出位置失败");
+            });
+          },
+        },
       });
     },
     onError: (error) => {

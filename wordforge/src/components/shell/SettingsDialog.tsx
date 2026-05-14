@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   Bot,
   CheckCircle2,
   DatabaseBackup,
   FileArchive,
   FileDown,
+  FolderOpen,
   KeyRound,
   Save,
   Trash2,
@@ -35,6 +37,7 @@ import { WORD_COUNT_MODE_LABELS, type WordCountMode } from "@/lib/wordCount";
 import { useUIStore, type EditorFontFamily } from "@/store/useUIStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import type { AiProvider, ExportFormat, ExportMode } from "@/types/db";
+import type { ExportResult } from "@/types/db";
 
 const FONT_OPTIONS: Array<{ value: EditorFontFamily; label: string }> = [
   { value: "sans", label: "无衬线" },
@@ -141,6 +144,7 @@ export function SettingsDialog() {
   const [modelDraft, setModelDraft] = useState("");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("markdown");
   const [exportMode, setExportMode] = useState<ExportMode>("merged");
+  const [lastExport, setLastExport] = useState<ExportResult | null>(null);
 
   const backupDir = backupSettings.data?.backupDir ?? "";
   const autoBackupEnabled = backupSettings.data?.autoBackupEnabled ?? false;
@@ -569,17 +573,43 @@ export function SettingsDialog() {
                   disabled={!currentProjectId || exportProject.isPending}
                   onClick={() => {
                     if (!currentProjectId) return;
-                    exportProject.mutate({
-                      projectId: currentProjectId,
-                      format: exportFormat,
-                      mode: exportMode,
-                    });
+                    exportProject.mutate(
+                      {
+                        projectId: currentProjectId,
+                        format: exportFormat,
+                        mode: exportMode,
+                      },
+                      {
+                        onSuccess: setLastExport,
+                      },
+                    );
                   }}
                 >
                   <FileDown className="h-4 w-4" />
                   {exportProject.isPending ? "导出中" : "导出"}
                 </Button>
               </div>
+
+              {lastExport && (
+                <div className="flex items-center justify-between gap-3 rounded-md border bg-background p-3">
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium">最近导出：{lastExport.fileCount} 个文件</p>
+                    <p className="truncate text-xs text-muted-foreground" title={lastExport.path}>
+                      {lastExport.path}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1"
+                    onClick={() => void revealItemInDir(lastExport.path)}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    打开位置
+                  </Button>
+                </div>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="counting" className="py-4">

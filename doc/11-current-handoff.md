@@ -1,12 +1,13 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-14 22:50（工作树，尚未提交）
+> 更新时间：2026-05-14 22:50（`95d3e8f` 已提交；之后继续补了导出打开位置体验）
 
 ## 当前分支状态
 
 - 分支：`main`
 - 远端状态：`main...origin/main [ahead 2]`
-- 当前工作树包含未提交改动。
+- `95d3e8f feat: add AI settings and project export` 已提交。
+- 当前工作树包含导出体验深化的未提交改动。
 
 ## 本轮已完成
 
@@ -32,6 +33,7 @@
   - Plain Text 按章拆分
 - 导出目录：应用数据目录下 `wordforge/exports`。
 - 导出时按章节树顺序输出，并将 TipTap JSON 转为 Markdown / 纯文本。
+- 导出完成后 toast 提供“打开位置”，导出页显示最近一次导出并可打开位置。
 
 ### 章节缓存同步修复
 
@@ -82,6 +84,6 @@
 
 ## 建议下一步
 
-1. 先提交当前工作树，建议提交信息：`feat: add AI settings and project export`
+1. 提交当前导出体验深化改动，建议提交信息：`feat: improve export discovery`
 2. 接着优先补 F15 Actions 实跑问题，或者做 F13 导出深化（文件选择器 / Docx）。
 3. 如果继续 AI 方向，先处理密钥存储安全，再做 F6 段落精修。
