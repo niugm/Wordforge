@@ -12,6 +12,11 @@ export type EditorPreferences = {
   measure: number;
 };
 
+export type LiveScopeWords = {
+  label: "本段" | "选中";
+  words: number;
+};
+
 const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
   fontFamily: "sans",
   fontSize: 15,
@@ -28,7 +33,7 @@ type UIState = {
   searchOpen: boolean;
   focusMode: boolean;
   liveWordCount: number | null;
-  liveParagraphWords: number | null;
+  liveScopeWords: LiveScopeWords | null;
   liveSessionWords: number;
 
   setTheme: (theme: Theme) => void;
@@ -43,7 +48,7 @@ type UIState = {
   setSettings: (open: boolean) => void;
   setSearch: (open: boolean) => void;
   setLiveWordCount: (n: number | null) => void;
-  setLiveParagraphWords: (n: number | null) => void;
+  setLiveScopeWords: (value: LiveScopeWords | null) => void;
   setLiveSessionWords: (n: number) => void;
 };
 
@@ -58,7 +63,7 @@ export const useUIStore = create<UIState>()(
       searchOpen: false,
       focusMode: false,
       liveWordCount: null,
-      liveParagraphWords: null,
+      liveScopeWords: null,
       liveSessionWords: 0,
 
       setTheme: (theme) => set({ theme }),
@@ -74,7 +79,7 @@ export const useUIStore = create<UIState>()(
       setSettings: (open) => set({ settingsOpen: open }),
       setSearch: (open) => set({ searchOpen: open }),
       setLiveWordCount: (n) => set({ liveWordCount: n }),
-      setLiveParagraphWords: (n) => set({ liveParagraphWords: n }),
+      setLiveScopeWords: (value) => set({ liveScopeWords: value }),
       setLiveSessionWords: (n) => set({ liveSessionWords: Math.max(0, n) }),
     }),
     {
