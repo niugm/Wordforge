@@ -139,11 +139,11 @@ CREATE TABLE settings (
   value  TEXT
 );
 
--- AI 凭据：仅存密文，明文在 stronghold 中
+-- AI 凭据：API Key 存在系统凭据库（keyring），SQLite 仅保留哨兵值与配置元数据
 CREATE TABLE ai_credentials (
   provider    TEXT PRIMARY KEY,                       -- openai|anthropic|gemini
-  ciphertext  BLOB NOT NULL,
-  nonce       BLOB NOT NULL,
+  ciphertext  BLOB NOT NULL,                          -- sentinel，不保存真实 key
+  nonce       BLOB NOT NULL,                           -- v0.1 保留兼容字段
   base_url    TEXT,                                   -- 兼容自部署
   model       TEXT
 );

@@ -14,6 +14,9 @@ pub enum AppError {
     #[error("tauri error: {0}")]
     Tauri(#[from] tauri::Error),
 
+    #[error("keyring error: {0}")]
+    Keyring(#[from] keyring::Error),
+
     #[error("not found: {0}")]
     NotFound(String),
 
@@ -29,6 +32,7 @@ impl serde::Serialize for AppError {
             Self::Migration(_) => "Migration",
             Self::Io(_) => "Io",
             Self::Tauri(_) => "Tauri",
+            Self::Keyring(_) => "Keyring",
             Self::NotFound(_) => "NotFound",
             Self::InvalidInput(_) => "InvalidInput",
         };

@@ -220,9 +220,10 @@ MVP 可先复用：
 
 ### Step 1：安全存储
 
-- 确定 Stronghold 或 keyring。
+- 已选择 keyring crate 作为 v0.1 方案，API Key 写入系统凭据库。
 - `save_ai_credential` 不再把明文或伪密文写入 SQLite。
 - SQLite 只保存 provider、base_url、model、has_api_key sentinel。
+- 旧版本误写入 SQLite 的 key 会在读取 AI 配置时迁移到 keyring，并把 SQLite 字段替换为 sentinel。
 
 ### Step 2：Provider 抽象
 

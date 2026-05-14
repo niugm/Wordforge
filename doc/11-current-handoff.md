@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已完成 AI 辅助写作产品设计）
+> 更新时间：2026-05-15（已接入 AI Key keyring 安全存储）
 
 ## 当前分支状态
 
@@ -20,6 +20,7 @@
 - `style: refine settings option cards` 已提交。
 - `feat: choose project export directory` 已提交。
 - `docs: prioritize AI work` 已提交。
+- `docs: design AI writing assistant` 已提交。
 - 当前工作树干净。
 
 ## 本轮已完成
@@ -30,6 +31,8 @@
 - 支持 OpenAI 兼容 / Anthropic / Gemini。
 - 可保存 API Key、Base URL、模型。
 - 前端只显示 `hasApiKey` 状态，不回显明文密钥。
+- API Key 已改为写入系统凭据库（keyring crate）；SQLite `ai_credentials.ciphertext` 只保留 sentinel。
+- 旧版本误写入 SQLite 的 key 会在读取 AI 配置时迁移到 keyring，并清理为 sentinel。
 - Rust IPC：
   - `list_ai_credentials`
   - `save_ai_credential`
@@ -175,13 +178,13 @@
 
 ## 注意事项
 
-- AI Key 当前只是写入 `ai_credentials.ciphertext`，尚未接入 Stronghold/keyring 真加密；这是下一阶段 AI 调用前需要处理的安全债。
+- AI Key 已接入 keyring；后续 AI 调用从 Rust 侧读取系统凭据库，不从前端读取明文。
 - 导出已接入 `tauri-plugin-dialog` 做目录选择；未选择时仍写入应用数据目录。
 - Docx 导出仍未实现。
 - F15 CI/CD 还缺首次 GitHub Actions 实跑验证。
 
 ## 建议下一步
 
-1. 按 `doc/12-ai-writing-design.md` 开始 AI 主链路：先做 AI Key 安全存储。
-2. 接着实现 Rust 侧 `LlmProvider` trait 和 OpenAI-compatible provider。
+1. 实现 Rust 侧 `LlmProvider` trait 和 OpenAI-compatible provider。
+2. 接着做非流式 `ai_polish` command，跑通凝练/扩写。
 3. 然后做 F6 段落精修 MVP：选区入口、右侧结果卡、替换/插入/复制。

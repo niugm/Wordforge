@@ -47,20 +47,20 @@ pub struct ChatRequest {
                              ▼
                 ┌─────────────────────────┐
                 │ commands::save_credential│
-                │  1. open stronghold      │
+                │  1. open system keyring  │
                 │  2. store raw_key        │
-                │  3. encrypt sentinel     │
+                │  3. write sentinel       │
                 │  4. write ai_credentials │
                 └─────────────────────────┘
 
    每次调用：
    commands::ai_chat
-     → load stronghold record by provider
+     → load keyring record by provider
      → instantiate provider with key
      → forward stream to frontend Channel
 ```
 
-- 主密码：v0.1 用机器绑定派生（machine UID + app salt），用户无感；v0.2 引入"自定义主密码"。
+- v0.1 使用系统凭据库（keyring crate）；v0.2 可引入 Stronghold + 自定义主密码。
 - 前端**只能**调 `is_credential_present(provider) -> bool`，永不读取明文。
 
 ## 5.4 IPC 协议

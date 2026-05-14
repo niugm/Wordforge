@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
@@ -12,6 +13,8 @@ const BACKUP_LAST_AUTO_DAY_KEY: &str = "backup.last_auto_day";
 const AUTO_BACKUP_HOUR: i64 = 3;
 const BACKUP_KEEP_FILES: usize = 7;
 const AI_PROVIDERS: [&str; 3] = ["openai", "anthropic", "gemini"];
+const AI_KEYRING_SERVICE: &str = "wordforge.ai";
+const AI_KEY_SENTINEL: &[u8] = b"keyring";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -172,6 +175,8 @@ fn prune_backups(target_dir: &Path) -> AppResult<()> {
 }
 
 pub async fn list_ai_credentials(pool: &SqlitePool) -> AppResult<Vec<AiCredentialSettings>> {
+    migrate_legacy_ai_credentials(pool).await?;
+
     let rows = sqlx::query_as::<_, StoredAiCredential>(
         "SELECT provider, base_url, model, length(ciphertext) > 0 AS has_api_key
          FROM ai_credentials",
@@ -216,6 +221,7 @@ pub async fn save_ai_credential(
 
     match api_key {
         Some(api_key) => {
+            store_ai_api_key(&provider, &api_key)?;
             sqlx::query(
                 "INSERT INTO ai_credentials (provider, ciphertext, nonce, base_url, model)
                  VALUES (?, ?, ?, ?, ?)
@@ -226,7 +232,7 @@ pub async fn save_ai_credential(
                    model = excluded.model",
             )
             .bind(&provider)
-            .bind(api_key.into_bytes())
+            .bind(AI_KEY_SENTINEL)
             .bind(Vec::<u8>::new())
             .bind(&base_url)
             .bind(&model)
@@ -256,6 +262,7 @@ pub async fn save_ai_credential(
 
 pub async fn delete_ai_credential(pool: &SqlitePool, provider: String) -> AppResult<()> {
     let provider = normalize_provider(provider)?;
+    delete_ai_api_key(&provider)?;
     sqlx::query("DELETE FROM ai_credentials WHERE provider = ?")
         .bind(provider)
         .execute(pool)
@@ -333,4 +340,49 @@ fn trim_optional(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+}
+
+async fn migrate_legacy_ai_credentials(pool: &SqlitePool) -> AppResult<()> {
+    let rows = sqlx::query_as::<_, (String, Vec<u8>)>(
+        "SELECT provider, ciphertext FROM ai_credentials WHERE length(ciphertext) > 0",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    for (provider, ciphertext) in rows {
+        if ciphertext == AI_KEY_SENTINEL {
+            continue;
+        }
+        let Ok(api_key) = String::from_utf8(ciphertext) else {
+            continue;
+        };
+        if api_key.trim().is_empty() {
+            continue;
+        }
+        store_ai_api_key(&provider, api_key.trim())?;
+        sqlx::query("UPDATE ai_credentials SET ciphertext = ?, nonce = ? WHERE provider = ?")
+            .bind(AI_KEY_SENTINEL)
+            .bind(Vec::<u8>::new())
+            .bind(&provider)
+            .execute(pool)
+            .await?;
+    }
+
+    Ok(())
+}
+
+fn store_ai_api_key(provider: &str, api_key: &str) -> AppResult<()> {
+    ai_keyring_entry(provider)?.set_password(api_key)?;
+    Ok(())
+}
+
+fn delete_ai_api_key(provider: &str) -> AppResult<()> {
+    match ai_keyring_entry(provider)?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn ai_keyring_entry(provider: &str) -> AppResult<Entry> {
+    Ok(Entry::new(AI_KEYRING_SERVICE, provider)?)
 }

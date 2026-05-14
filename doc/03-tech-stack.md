@@ -24,7 +24,7 @@
 | 测试 | Vitest + RTL | latest | Jest | 与 Vite 同源 |
 | E2E | (暂略，v0.2) | — | Playwright | 优先把核心做完 |
 | 数据库 | SQLite + sqlx | 0.8 | rusqlite, tauri-plugin-sql | 编译期 SQL 校验；Rust 侧直连，便于统一事务与迁移 |
-| 密钥库 | tauri-plugin-stronghold | 2.x（计划） | keyring crate | IOTA Stronghold，加密 sled |
+| 密钥库 | keyring crate | 3.x | tauri-plugin-stronghold | 优先使用系统凭据库；Stronghold 留作 v0.2 自定义主密码方案 |
 | HTTP | reqwest + eventsource-stream | latest | hyper | 流式 SSE 简单 |
 | 序列化 | serde / serde_json | 1.x | — | Rust 标准 |
 | 错误 | thiserror + anyhow | latest | — | 库用 thiserror，bin 用 anyhow |
