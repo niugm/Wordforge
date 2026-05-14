@@ -93,6 +93,23 @@ export interface BackupResult {
   path: string;
 }
 
+export type AiProvider = "openai" | "anthropic" | "gemini";
+
+export interface AiCredentialSettings {
+  provider: AiProvider;
+  baseUrl: string | null;
+  model: string | null;
+  hasApiKey: boolean;
+}
+
+export type ExportFormat = "markdown" | "plainText";
+export type ExportMode = "merged" | "chapterFiles";
+
+export interface ExportResult {
+  path: string;
+  fileCount: number;
+}
+
 export interface AppErrorPayload {
   code: string;
   message: string;

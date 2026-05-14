@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { settingsRepo } from "@/services/db";
+import type { AiProvider } from "@/types/db";
 
 export function useBackupSettings() {
   return useQuery({
@@ -31,6 +32,66 @@ export function useBackupNow() {
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "备份失败");
+    },
+  });
+}
+
+export function useAiCredentials() {
+  return useQuery({
+    queryKey: ["ai-credentials"] as const,
+    queryFn: settingsRepo.listAiCredentials,
+  });
+}
+
+export function useSaveAiCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: settingsRepo.saveAiCredential,
+    onSuccess: (credential) => {
+      qc.setQueryData(["ai-credentials"], (current: unknown) =>
+        Array.isArray(current)
+          ? current.map((item) =>
+              item && typeof item === "object" && "provider" in item
+                ? (item as { provider: AiProvider }).provider === credential.provider
+                  ? credential
+                  : item
+                : item,
+            )
+          : current,
+      );
+      qc.invalidateQueries({ queryKey: ["ai-credentials"] });
+      toast.success("AI 配置已保存");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "保存 AI 配置失败");
+    },
+  });
+}
+
+export function useDeleteAiCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: settingsRepo.deleteAiCredential,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-credentials"] });
+      toast.success("AI 密钥已删除");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "删除 AI 密钥失败");
+    },
+  });
+}
+
+export function useExportProject() {
+  return useMutation({
+    mutationFn: settingsRepo.exportProject,
+    onSuccess: (result) => {
+      toast.success(`导出完成：${result.fileCount} 个文件`, {
+        description: result.path,
+      });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "导出失败");
     },
   });
 }

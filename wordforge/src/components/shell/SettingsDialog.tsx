@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { DatabaseBackup } from "lucide-react";
+import {
+  Bot,
+  CheckCircle2,
+  DatabaseBackup,
+  FileArchive,
+  FileDown,
+  KeyRound,
+  Save,
+  Trash2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +17,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useBackupNow, useBackupSettings, useUpdateBackupSettings } from "@/hooks/useSettings";
+import {
+  useAiCredentials,
+  useBackupNow,
+  useBackupSettings,
+  useDeleteAiCredential,
+  useExportProject,
+  useSaveAiCredential,
+  useUpdateBackupSettings,
+} from "@/hooks/useSettings";
+import { useProjects } from "@/hooks/useProjects";
 import { WORD_COUNT_MODE_LABELS, type WordCountMode } from "@/lib/wordCount";
 import { useUIStore, type EditorFontFamily } from "@/store/useUIStore";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
+import type { AiProvider, ExportFormat, ExportMode } from "@/types/db";
 
 const FONT_OPTIONS: Array<{ value: EditorFontFamily; label: string }> = [
   { value: "sans", label: "无衬线" },
@@ -39,6 +60,62 @@ const WORD_COUNT_OPTIONS: Array<{ value: WordCountMode; label: string; descripti
   },
 ];
 
+const AI_PROVIDERS: Array<{
+  value: AiProvider;
+  label: string;
+  description: string;
+  baseUrlPlaceholder: string;
+  modelPlaceholder: string;
+}> = [
+  {
+    value: "openai",
+    label: "OpenAI 兼容",
+    description: "适配 OpenAI、DeepSeek、Kimi、通义或自部署网关。",
+    baseUrlPlaceholder: "https://api.openai.com/v1",
+    modelPlaceholder: "例如 gpt-4.1-mini",
+  },
+  {
+    value: "anthropic",
+    label: "Anthropic",
+    description: "用于 Claude Messages API。",
+    baseUrlPlaceholder: "https://api.anthropic.com",
+    modelPlaceholder: "例如 claude-sonnet-4",
+  },
+  {
+    value: "gemini",
+    label: "Gemini",
+    description: "用于 Google Gemini API。",
+    baseUrlPlaceholder: "https://generativelanguage.googleapis.com/v1beta",
+    modelPlaceholder: "例如 gemini-2.5-flash",
+  },
+];
+
+const EXPORT_FORMAT_OPTIONS: Array<{ value: ExportFormat; label: string; description: string }> = [
+  {
+    value: "markdown",
+    label: "Markdown",
+    description: "保留标题、列表、引用、代码块和常用文本标记。",
+  },
+  {
+    value: "plainText",
+    label: "纯文本",
+    description: "输出干净正文，适合投递或二次排版。",
+  },
+];
+
+const EXPORT_MODE_OPTIONS: Array<{ value: ExportMode; label: string; description: string }> = [
+  {
+    value: "merged",
+    label: "合并单文件",
+    description: "整部作品导出为一个文件。",
+  },
+  {
+    value: "chapterFiles",
+    label: "按章拆分",
+    description: "每个章节输出为独立文件。",
+  },
+];
+
 export function SettingsDialog() {
   const open = useUIStore((s) => s.settingsOpen);
   const setSettings = useUIStore((s) => s.setSettings);
@@ -50,11 +127,33 @@ export function SettingsDialog() {
   const backupSettings = useBackupSettings();
   const updateBackupSettings = useUpdateBackupSettings();
   const backupNow = useBackupNow();
+  const aiCredentials = useAiCredentials();
+  const saveAiCredential = useSaveAiCredential();
+  const deleteAiCredential = useDeleteAiCredential();
+  const exportProject = useExportProject();
+  const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
+  const { data: projects } = useProjects();
+  const currentProject = projects?.find((project) => project.id === currentProjectId) ?? null;
   const [backupDirDraft, setBackupDirDraft] = useState("");
+  const [activeProvider, setActiveProvider] = useState<AiProvider>("openai");
+  const [apiKeyDraft, setApiKeyDraft] = useState("");
+  const [baseUrlDraft, setBaseUrlDraft] = useState("");
+  const [modelDraft, setModelDraft] = useState("");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("markdown");
+  const [exportMode, setExportMode] = useState<ExportMode>("merged");
 
   const backupDir = backupSettings.data?.backupDir ?? "";
   const autoBackupEnabled = backupSettings.data?.autoBackupEnabled ?? false;
   const backupDirChanged = backupDirDraft.trim() !== backupDir;
+  const selectedProvider = AI_PROVIDERS.find((provider) => provider.value === activeProvider)!;
+  const selectedCredential = aiCredentials.data?.find(
+    (credential) => credential.provider === activeProvider,
+  );
+  const hasCurrentApiKey = selectedCredential?.hasApiKey ?? false;
+  const canSaveAiCredential =
+    !aiCredentials.isLoading &&
+    !saveAiCredential.isPending &&
+    (hasCurrentApiKey || apiKeyDraft.trim().length > 0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -63,18 +162,28 @@ export function SettingsDialog() {
     return () => clearTimeout(timer);
   }, [backupDir]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setApiKeyDraft("");
+      setBaseUrlDraft(selectedCredential?.baseUrl ?? "");
+      setModelDraft(selectedCredential?.model ?? "");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [activeProvider, selectedCredential?.baseUrl, selectedCredential?.model]);
+
   return (
     <Dialog open={open} onOpenChange={setSettings}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>设置</DialogTitle>
-          <DialogDescription>外观 / AI / 备份 / 字数计数</DialogDescription>
+          <DialogDescription>外观 / AI / 备份 / 导出 / 字数计数</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="appearance">
           <TabsList>
             <TabsTrigger value="appearance">外观</TabsTrigger>
             <TabsTrigger value="ai">AI</TabsTrigger>
             <TabsTrigger value="backup">备份</TabsTrigger>
+            <TabsTrigger value="export">导出</TabsTrigger>
             <TabsTrigger value="counting">字数</TabsTrigger>
           </TabsList>
           <TabsContent value="appearance" className="py-4 text-sm text-muted-foreground">
@@ -82,9 +191,7 @@ export function SettingsDialog() {
               <section className="space-y-3">
                 <div>
                   <h3 className="text-sm font-medium">编辑器偏好</h3>
-                  <p className="text-xs text-muted-foreground">
-                    调整正文排版，不影响已保存内容。
-                  </p>
+                  <p className="text-xs text-muted-foreground">调整正文排版，不影响已保存内容。</p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -121,10 +228,7 @@ export function SettingsDialog() {
                     />
                   </Field>
 
-                  <Field
-                    label={`字号 ${editorPreferences.fontSize}px`}
-                    htmlFor="editor-font-size"
-                  >
+                  <Field label={`字号 ${editorPreferences.fontSize}px`} htmlFor="editor-font-size">
                     <input
                       id="editor-font-size"
                       type="range"
@@ -172,8 +276,150 @@ export function SettingsDialog() {
               </DialogFooter>
             </div>
           </TabsContent>
-          <TabsContent value="ai" className="py-4 text-sm text-muted-foreground">
-            TODO: F12 设置 — provider 配置（OpenAI / Anthropic / Gemini）、密钥、base_url、模型
+          <TabsContent value="ai" className="py-4">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">AI Provider</h3>
+                <p className="text-xs text-muted-foreground">
+                  密钥只写入本地数据库，前端仅显示是否已保存。
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[190px_1fr]">
+                <div className="grid gap-2">
+                  {AI_PROVIDERS.map((provider) => {
+                    const credential = aiCredentials.data?.find(
+                      (item) => item.provider === provider.value,
+                    );
+                    const active = activeProvider === provider.value;
+
+                    return (
+                      <button
+                        key={provider.value}
+                        type="button"
+                        className={`rounded-md border p-3 text-left transition-colors ${
+                          active ? "border-primary bg-muted" : "bg-background hover:bg-accent"
+                        }`}
+                        onClick={() => setActiveProvider(provider.value)}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                            <Bot className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{provider.label}</span>
+                          </span>
+                          {credential?.hasApiKey ? (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                          ) : null}
+                        </span>
+                        <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
+                          {provider.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-4 rounded-md border bg-background p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{selectedProvider.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {hasCurrentApiKey ? "已保存密钥，留空可保留原密钥。" : "尚未保存密钥。"}
+                      </p>
+                    </div>
+                    <Badge variant={hasCurrentApiKey ? "secondary" : "outline"}>
+                      {hasCurrentApiKey ? "已配置" : "未配置"}
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <Field label="API Key" htmlFor="ai-api-key">
+                      <div className="relative">
+                        <KeyRound className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="ai-api-key"
+                          type="password"
+                          value={apiKeyDraft}
+                          onChange={(e) => setApiKeyDraft(e.target.value)}
+                          placeholder={hasCurrentApiKey ? "留空保留当前密钥" : "粘贴 API key"}
+                          disabled={aiCredentials.isLoading || saveAiCredential.isPending}
+                          className="pl-8"
+                        />
+                      </div>
+                    </Field>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field label="Base URL" htmlFor="ai-base-url">
+                        <Input
+                          id="ai-base-url"
+                          value={baseUrlDraft}
+                          onChange={(e) => setBaseUrlDraft(e.target.value)}
+                          placeholder={selectedProvider.baseUrlPlaceholder}
+                          disabled={aiCredentials.isLoading || saveAiCredential.isPending}
+                        />
+                      </Field>
+
+                      <Field label="模型" htmlFor="ai-model">
+                        <Input
+                          id="ai-model"
+                          value={modelDraft}
+                          onChange={(e) => setModelDraft(e.target.value)}
+                          placeholder={selectedProvider.modelPlaceholder}
+                          disabled={aiCredentials.isLoading || saveAiCredential.isPending}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      disabled={!hasCurrentApiKey || deleteAiCredential.isPending}
+                      onClick={() =>
+                        deleteAiCredential.mutate(
+                          { provider: activeProvider },
+                          {
+                            onSuccess: () => {
+                              setApiKeyDraft("");
+                              setBaseUrlDraft("");
+                              setModelDraft("");
+                            },
+                          },
+                        )
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      删除密钥
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!canSaveAiCredential}
+                      onClick={() =>
+                        saveAiCredential.mutate(
+                          {
+                            provider: activeProvider,
+                            apiKey: apiKeyDraft || null,
+                            baseUrl: baseUrlDraft || null,
+                            model: modelDraft || null,
+                          },
+                          {
+                            onSuccess: () => setApiKeyDraft(""),
+                          },
+                        )
+                      }
+                    >
+                      <Save className="h-4 w-4" />
+                      {saveAiCredential.isPending ? "保存中" : "保存配置"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="backup" className="py-4">
             <div className="space-y-4">
@@ -247,6 +493,91 @@ export function SettingsDialog() {
                 >
                   <DatabaseBackup className="h-4 w-4" />
                   {backupNow.isPending ? "备份中" : "立即备份"}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="export" className="py-4">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">导出当前作品</h3>
+                <p className="text-xs text-muted-foreground">
+                  导出文件会生成到应用数据目录下的 exports 文件夹。
+                </p>
+              </div>
+
+              <div className="rounded-md border bg-background p-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <FileArchive className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{currentProject?.name ?? "未选作品"}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {currentProject
+                    ? "导出会按当前章节树顺序生成文件。"
+                    : "请先打开一个作品，再执行导出。"}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <section className="space-y-2">
+                  <p className="text-sm font-medium">格式</p>
+                  {EXPORT_FORMAT_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
+                        exportFormat === option.value
+                          ? "border-primary bg-muted"
+                          : "bg-background hover:bg-accent"
+                      }`}
+                      onClick={() => setExportFormat(option.value)}
+                    >
+                      <span className="block font-medium">{option.label}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </button>
+                  ))}
+                </section>
+
+                <section className="space-y-2">
+                  <p className="text-sm font-medium">方式</p>
+                  {EXPORT_MODE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
+                        exportMode === option.value
+                          ? "border-primary bg-muted"
+                          : "bg-background hover:bg-accent"
+                      }`}
+                      onClick={() => setExportMode(option.value)}
+                    >
+                      <span className="block font-medium">{option.label}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </button>
+                  ))}
+                </section>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!currentProjectId || exportProject.isPending}
+                  onClick={() => {
+                    if (!currentProjectId) return;
+                    exportProject.mutate({
+                      projectId: currentProjectId,
+                      format: exportFormat,
+                      mode: exportMode,
+                    });
+                  }}
+                >
+                  <FileDown className="h-4 w-4" />
+                  {exportProject.isPending ? "导出中" : "导出"}
                 </Button>
               </div>
             </div>

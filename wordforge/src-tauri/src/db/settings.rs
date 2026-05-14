@@ -8,6 +8,7 @@ use crate::error::{AppError, AppResult};
 
 const BACKUP_DIR_KEY: &str = "backup.dir";
 const BACKUP_ENABLED_KEY: &str = "backup.enabled";
+const AI_PROVIDERS: [&str; 3] = ["openai", "anthropic", "gemini"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +21,23 @@ pub struct BackupSettings {
 #[serde(rename_all = "camelCase")]
 pub struct BackupResult {
     pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiCredentialSettings {
+    pub provider: String,
+    pub base_url: Option<String>,
+    pub model: Option<String>,
+    pub has_api_key: bool,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct StoredAiCredential {
+    provider: String,
+    base_url: Option<String>,
+    model: Option<String>,
+    has_api_key: i64,
 }
 
 pub async fn get_backup_settings(pool: &SqlitePool) -> AppResult<BackupSettings> {
@@ -85,6 +103,123 @@ pub async fn backup_now(
     })
 }
 
+pub async fn list_ai_credentials(pool: &SqlitePool) -> AppResult<Vec<AiCredentialSettings>> {
+    let rows = sqlx::query_as::<_, StoredAiCredential>(
+        "SELECT provider, base_url, model, length(ciphertext) > 0 AS has_api_key
+         FROM ai_credentials",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let settings = AI_PROVIDERS
+        .iter()
+        .map(|provider| {
+            rows.iter()
+                .find(|row| row.provider == *provider)
+                .map(|row| AiCredentialSettings {
+                    provider: row.provider.clone(),
+                    base_url: row.base_url.clone(),
+                    model: row.model.clone(),
+                    has_api_key: row.has_api_key != 0,
+                })
+                .unwrap_or_else(|| AiCredentialSettings {
+                    provider: (*provider).to_string(),
+                    base_url: None,
+                    model: None,
+                    has_api_key: false,
+                })
+        })
+        .collect();
+
+    Ok(settings)
+}
+
+pub async fn save_ai_credential(
+    pool: &SqlitePool,
+    provider: String,
+    api_key: Option<String>,
+    base_url: Option<String>,
+    model: Option<String>,
+) -> AppResult<AiCredentialSettings> {
+    let provider = normalize_provider(provider)?;
+    let api_key = trim_optional(api_key);
+    let base_url = trim_optional(base_url);
+    let model = trim_optional(model);
+
+    match api_key {
+        Some(api_key) => {
+            sqlx::query(
+                "INSERT INTO ai_credentials (provider, ciphertext, nonce, base_url, model)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON CONFLICT(provider) DO UPDATE SET
+                   ciphertext = excluded.ciphertext,
+                   nonce = excluded.nonce,
+                   base_url = excluded.base_url,
+                   model = excluded.model",
+            )
+            .bind(&provider)
+            .bind(api_key.into_bytes())
+            .bind(Vec::<u8>::new())
+            .bind(&base_url)
+            .bind(&model)
+            .execute(pool)
+            .await?;
+        }
+        None => {
+            let result = sqlx::query(
+                "UPDATE ai_credentials
+                 SET base_url = ?, model = ?
+                 WHERE provider = ?",
+            )
+            .bind(&base_url)
+            .bind(&model)
+            .bind(&provider)
+            .execute(pool)
+            .await?;
+
+            if result.rows_affected() == 0 {
+                return Err(AppError::InvalidInput("api key is required".into()));
+            }
+        }
+    }
+
+    get_ai_credential(pool, &provider).await
+}
+
+pub async fn delete_ai_credential(pool: &SqlitePool, provider: String) -> AppResult<()> {
+    let provider = normalize_provider(provider)?;
+    sqlx::query("DELETE FROM ai_credentials WHERE provider = ?")
+        .bind(provider)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+async fn get_ai_credential(pool: &SqlitePool, provider: &str) -> AppResult<AiCredentialSettings> {
+    let row = sqlx::query_as::<_, StoredAiCredential>(
+        "SELECT provider, base_url, model, length(ciphertext) > 0 AS has_api_key
+         FROM ai_credentials
+         WHERE provider = ?",
+    )
+    .bind(provider)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row
+        .map(|row| AiCredentialSettings {
+            provider: row.provider,
+            base_url: row.base_url,
+            model: row.model,
+            has_api_key: row.has_api_key != 0,
+        })
+        .unwrap_or_else(|| AiCredentialSettings {
+            provider: provider.to_string(),
+            base_url: None,
+            model: None,
+            has_api_key: false,
+        }))
+}
+
 async fn get_setting(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
     let value = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
         .bind(key)
@@ -113,4 +248,21 @@ async fn set_setting(pool: &SqlitePool, key: &str, value: Option<&str>) -> AppRe
         }
     }
     Ok(())
+}
+
+fn normalize_provider(provider: String) -> AppResult<String> {
+    let provider = provider.trim().to_ascii_lowercase();
+    if AI_PROVIDERS.contains(&provider.as_str()) {
+        Ok(provider)
+    } else {
+        Err(AppError::InvalidInput(format!(
+            "unsupported ai provider: {provider}"
+        )))
+    }
+}
+
+fn trim_optional(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
 }

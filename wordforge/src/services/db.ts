@@ -4,9 +4,14 @@ import type {
   ChapterStatus,
   Character,
   CharacterInput,
+  AiCredentialSettings,
+  AiProvider,
   BackupResult,
   BackupSettings,
   DailyWords,
+  ExportFormat,
+  ExportMode,
+  ExportResult,
   OutlineInput,
   OutlineNode,
   Project,
@@ -63,8 +68,7 @@ export const charactersRepo = {
   create: (input: { projectId: string; input: CharacterInput }) =>
     invoke<Character>("create_character", input),
 
-  update: (input: { id: string; input: CharacterInput }) =>
-    invoke<void>("update_character", input),
+  update: (input: { id: string; input: CharacterInput }) => invoke<void>("update_character", input),
 
   remove: (input: { id: string }) => invoke<void>("delete_character", input),
 };
@@ -87,14 +91,11 @@ export const outlinesRepo = {
 };
 
 export const sessionsRepo = {
-  start: (input: { projectId: string }) =>
-    invoke<WritingSession>("start_session", input),
+  start: (input: { projectId: string }) => invoke<WritingSession>("start_session", input),
 
-  end: (input: { id: string; wordsWritten: number }) =>
-    invoke<void>("end_session", input),
+  end: (input: { id: string; wordsWritten: number }) => invoke<void>("end_session", input),
 
-  getStats: (input: { projectId: string }) =>
-    invoke<WritingStats>("get_writing_stats", input),
+  getStats: (input: { projectId: string }) => invoke<WritingStats>("get_writing_stats", input),
 
   getDailyWords: (input: { projectId: string; days: number }) =>
     invoke<DailyWords[]>("get_daily_words", input),
@@ -106,6 +107,20 @@ export const settingsRepo = {
   updateBackupSettings: (input: { backupDir: string | null; autoBackupEnabled: boolean }) =>
     invoke<BackupSettings>("update_backup_settings", input),
 
-  backupNow: (input: { backupDir?: string | null }) =>
-    invoke<BackupResult>("backup_now", input),
+  backupNow: (input: { backupDir?: string | null }) => invoke<BackupResult>("backup_now", input),
+
+  listAiCredentials: () => invoke<AiCredentialSettings[]>("list_ai_credentials"),
+
+  saveAiCredential: (input: {
+    provider: AiProvider;
+    apiKey: string | null;
+    baseUrl: string | null;
+    model: string | null;
+  }) => invoke<AiCredentialSettings>("save_ai_credential", input),
+
+  deleteAiCredential: (input: { provider: AiProvider }) =>
+    invoke<void>("delete_ai_credential", input),
+
+  exportProject: (input: { projectId: string; format: ExportFormat; mode: ExportMode }) =>
+    invoke<ExportResult>("export_project", input),
 };
