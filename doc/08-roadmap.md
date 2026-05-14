@@ -13,7 +13,7 @@
 | v0.0.6 | F3 角色管理 + F4 大纲 | 🚧 进行中 | |
 | v0.0.7 | F9 批注 + F10 全文检索 | ⏳ 待开始 | |
 | v0.0.8 | F6 AI 精修 + F7 章节校审 | ⏳ 待开始 | |
-| v0.0.9 | F12 设置完整 + F13 导出 + F14 备份 | ⏳ 待开始 | |
+| v0.0.9 | F12 设置完整 + F13 导出 + F14 备份 | 🚧 进行中 | |
 | v0.0.10 | F15 CI/CD + 端到端打磨 + bug fix | ⏳ 待开始 | |
 | **v0.1.0** | 首个公开发布 | 🎯 目标 | |
 
@@ -36,7 +36,8 @@
 | **F8 字数统计** | writing_sessions 生命周期（mount start / unmount end / 30 秒无输入自动结束）；再次输入自动开启新 session；localtime 时区修正；Footer 实时字数 + 今日累计（含当前编辑会话增量）；Dashboard：今日/本周/本月/连续写作卡片 + 全书目标进度条 + 30/90/365 天热力图 + Recharts 柱状图；设置中支持字符 / 不计空白 / 中英混合计数模式 |
 | **F10 基础搜索** | SearchDialog 已接入当前作品的章节标题/摘要、角色卡、大纲节点搜索；结果可跳转章节或切换左侧角色/大纲 Tab；前端结果显示命中片段并高亮关键词；章节正文 FTS5 检索待接入 |
 | **F11 命令面板** | CommandPalette 已接入真实数据；支持导航命令、设置/搜索操作、章节跳转、角色/大纲 Tab 切换；最近使用置顶并持久化最近 6 个项目 |
-| **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量 |
+| **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量；备份目录/自动备份开关写入 SQLite `settings` 表 |
+| **F14 备份** | 已接入备份设置读取/保存与手动立即备份；Rust 侧复制当前 SQLite DB 到指定目录并生成 `wordforge-时间戳.db`；定时执行与 7 天轮转待接入 |
 | **F15 CI/CD** | 已新增 `.github/workflows/ci.yml` 与 `release.yml`；CI 在 push/PR 上执行 lint、前端 build、cargo fmt、clippy；release 在 tag `v*` 上生成 Tauri draft release（Windows + macOS universal） |
 | **UX 细节** | Sonner toast 全局（所有写操作成功/错误提示）；Bundle 拆分（manualChunks：vendor-react/tiptap/recharts/dnd/ui）；标题栏面包屑分隔线垂直居中 |
 
@@ -44,7 +45,7 @@
 
 | 优先级 | 功能 | 说明 |
 |---|---|---|
-| P0 | F12 设置完整 | AI key 配置、备份目录、中英文计数模式 |
+| P0 | F12 设置完整 | AI key 配置 |
 | P0 | F15 CI/CD | 首次 Actions 实跑验证；必要时修正 runner 依赖与产物命名 |
 | P1 | F5 编辑器深化 | 场景分割节点 / 注释 mark / IME 兼容测试 |
 | P1 | F3 角色关系深化 | character_relations 表已建；关系成对添加、`@姓名` 引用跳转、插入角色卡到当前段落 |
@@ -54,7 +55,7 @@
 | P1 | F6 AI 精修 | 需先完成 F12 AI key 配置 |
 | P1 | F7 章节校审 | 需先完成 F6 |
 | P2 | F10 全文检索深化 | 接入 Rust/SQLite FTS5 正文检索、snippet、高亮与按类别分组 |
-| P2 | F14 自动备份 | 定时任务 + db 复制 |
+| P2 | F14 自动备份 | 定时任务 + 最近 7 天轮转 |
 
 ---
 

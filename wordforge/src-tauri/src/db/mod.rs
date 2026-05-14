@@ -3,6 +3,7 @@ pub mod characters;
 pub mod outlines;
 pub mod projects;
 pub mod sessions;
+pub mod settings;
 
 use std::path::Path;
 

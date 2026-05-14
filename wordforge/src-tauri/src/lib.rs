@@ -24,6 +24,7 @@ pub fn run() {
                     e
                 })?;
             app.manage(pool);
+            app.manage(app_data_dir);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -57,6 +58,9 @@ pub fn run() {
             commands::sessions::end_session,
             commands::sessions::get_writing_stats,
             commands::sessions::get_daily_words,
+            commands::settings::get_backup_settings,
+            commands::settings::update_backup_settings,
+            commands::settings::backup_now,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -4,6 +4,8 @@ import type {
   ChapterStatus,
   Character,
   CharacterInput,
+  BackupResult,
+  BackupSettings,
   DailyWords,
   OutlineInput,
   OutlineNode,
@@ -96,4 +98,14 @@ export const sessionsRepo = {
 
   getDailyWords: (input: { projectId: string; days: number }) =>
     invoke<DailyWords[]>("get_daily_words", input),
+};
+
+export const settingsRepo = {
+  getBackupSettings: () => invoke<BackupSettings>("get_backup_settings"),
+
+  updateBackupSettings: (input: { backupDir: string | null; autoBackupEnabled: boolean }) =>
+    invoke<BackupSettings>("update_backup_settings", input),
+
+  backupNow: (input: { backupDir?: string | null }) =>
+    invoke<BackupResult>("backup_now", input),
 };

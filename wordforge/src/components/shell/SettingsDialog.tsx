@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { DatabaseBackup } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useBackupNow, useBackupSettings, useUpdateBackupSettings } from "@/hooks/useSettings";
 import { WORD_COUNT_MODE_LABELS, type WordCountMode } from "@/lib/wordCount";
 import { useUIStore, type EditorFontFamily } from "@/store/useUIStore";
 
@@ -44,6 +47,21 @@ export function SettingsDialog() {
   const resetEditorPreferences = useUIStore((s) => s.resetEditorPreferences);
   const wordCountMode = useUIStore((s) => s.wordCountMode);
   const setWordCountMode = useUIStore((s) => s.setWordCountMode);
+  const backupSettings = useBackupSettings();
+  const updateBackupSettings = useUpdateBackupSettings();
+  const backupNow = useBackupNow();
+  const [backupDirDraft, setBackupDirDraft] = useState("");
+
+  const backupDir = backupSettings.data?.backupDir ?? "";
+  const autoBackupEnabled = backupSettings.data?.autoBackupEnabled ?? false;
+  const backupDirChanged = backupDirDraft.trim() !== backupDir;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBackupDirDraft(backupDir);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [backupDir]);
 
   return (
     <Dialog open={open} onOpenChange={setSettings}>
@@ -157,8 +175,81 @@ export function SettingsDialog() {
           <TabsContent value="ai" className="py-4 text-sm text-muted-foreground">
             TODO: F12 设置 — provider 配置（OpenAI / Anthropic / Gemini）、密钥、base_url、模型
           </TabsContent>
-          <TabsContent value="backup" className="py-4 text-sm text-muted-foreground">
-            TODO: F14 自动备份 — 备份目录、自动备份开关
+          <TabsContent value="backup" className="py-4">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">备份</h3>
+                <p className="text-xs text-muted-foreground">
+                  设置数据库备份目录，并可手动生成一份当前数据库副本。
+                </p>
+              </div>
+
+              <Field label="备份目录" htmlFor="backup-dir">
+                <Input
+                  id="backup-dir"
+                  value={backupDirDraft}
+                  onChange={(e) => setBackupDirDraft(e.target.value)}
+                  placeholder="例如 D:\\Backups\\Wordforge"
+                  disabled={backupSettings.isLoading || updateBackupSettings.isPending}
+                />
+              </Field>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!backupDirChanged || updateBackupSettings.isPending}
+                  onClick={() =>
+                    updateBackupSettings.mutate({
+                      backupDir: backupDirDraft || null,
+                      autoBackupEnabled,
+                    })
+                  }
+                >
+                  保存备份目录
+                </Button>
+              </div>
+
+              <label className="flex items-center justify-between rounded-md border p-3 text-sm">
+                <span>
+                  <span className="block font-medium">启用自动备份</span>
+                  <span className="text-xs text-muted-foreground">
+                    当前版本保存开关，定时执行将在后续接入。
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={autoBackupEnabled}
+                  onChange={(e) =>
+                    updateBackupSettings.mutate({
+                      backupDir: backupDirDraft || null,
+                      autoBackupEnabled: e.target.checked,
+                    })
+                  }
+                  disabled={backupSettings.isLoading || updateBackupSettings.isPending}
+                  className="h-4 w-4"
+                />
+              </label>
+
+              <div className="flex items-center justify-between rounded-md border bg-background p-3">
+                <div className="text-sm">
+                  <p className="font-medium">立即备份</p>
+                  <p className="text-xs text-muted-foreground">
+                    生成 `wordforge-时间戳.db` 到备份目录。
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="gap-1"
+                  disabled={!backupDirDraft.trim() || backupNow.isPending}
+                  onClick={() => backupNow.mutate({ backupDir: backupDirDraft || null })}
+                >
+                  <DatabaseBackup className="h-4 w-4" />
+                  {backupNow.isPending ? "备份中" : "立即备份"}
+                </Button>
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="counting" className="py-4">
             <div className="space-y-4">

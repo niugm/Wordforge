@@ -84,6 +84,15 @@ export interface DailyWords {
   words: number;
 }
 
+export interface BackupSettings {
+  backupDir: string | null;
+  autoBackupEnabled: boolean;
+}
+
+export interface BackupResult {
+  path: string;
+}
+
 export interface AppErrorPayload {
   code: string;
   message: string;
