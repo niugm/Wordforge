@@ -6,6 +6,7 @@ import {
   DatabaseBackup,
   FileArchive,
   FileDown,
+  FileText,
   FolderOpen,
   Hash,
   KeyRound,
@@ -37,6 +38,7 @@ import {
   useUpdateBackupSettings,
 } from "@/hooks/useSettings";
 import { useProjects } from "@/hooks/useProjects";
+import { cn } from "@/lib/utils";
 import { WORD_COUNT_MODE_LABELS, type WordCountMode } from "@/lib/wordCount";
 import { useUIStore, type EditorFontFamily } from "@/store/useUIStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
@@ -315,14 +317,24 @@ export function SettingsDialog() {
                       <button
                         key={provider.value}
                         type="button"
-                        className={`rounded-md border p-3 text-left transition-colors ${
-                          active ? "border-primary bg-muted" : "bg-background hover:bg-accent"
-                        }`}
+                        className={cn(
+                          "w-full rounded-md border p-3 text-left transition-colors",
+                          active
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "bg-background hover:bg-accent/70",
+                        )}
                         onClick={() => setActiveProvider(provider.value)}
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                            <Bot className="h-4 w-4 shrink-0" />
+                            <span
+                              className={cn(
+                                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                                active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              <Bot className="h-4 w-4" />
+                            </span>
                             <span className="truncate">{provider.label}</span>
                           </span>
                           {credential?.hasApiKey ? (
@@ -473,7 +485,7 @@ export function SettingsDialog() {
                 </Button>
               </div>
 
-              <label className="flex items-center justify-between rounded-md border p-3 text-sm">
+              <label className="flex items-center justify-between gap-4 rounded-md border bg-background p-3 text-sm transition-colors hover:bg-accent/40">
                 <span>
                   <span className="block font-medium">启用自动备份</span>
                   <span className="text-xs text-muted-foreground">
@@ -490,8 +502,11 @@ export function SettingsDialog() {
                     })
                   }
                   disabled={backupSettings.isLoading || updateBackupSettings.isPending}
-                  className="h-4 w-4"
+                  className="peer sr-only"
                 />
+                <span className="flex h-5 w-9 shrink-0 items-center rounded-full bg-muted p-0.5 transition-colors peer-checked:bg-primary peer-checked:[&>span]:translate-x-4 peer-disabled:opacity-50">
+                  <span className="h-4 w-4 rounded-full bg-background shadow-sm transition-transform" />
+                </span>
               </label>
 
               <div className="flex items-center justify-between rounded-md border bg-background p-3">
@@ -538,42 +553,28 @@ export function SettingsDialog() {
                 <section className="space-y-2">
                   <p className="text-sm font-medium">格式</p>
                   {EXPORT_FORMAT_OPTIONS.map((option) => (
-                    <button
+                    <SettingOptionCard
                       key={option.value}
-                      type="button"
-                      className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
-                        exportFormat === option.value
-                          ? "border-primary bg-muted"
-                          : "bg-background hover:bg-accent"
-                      }`}
+                      icon={option.value === "markdown" ? FileText : FileArchive}
+                      title={option.label}
+                      description={option.description}
+                      active={exportFormat === option.value}
                       onClick={() => setExportFormat(option.value)}
-                    >
-                      <span className="block font-medium">{option.label}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">
-                        {option.description}
-                      </span>
-                    </button>
+                    />
                   ))}
                 </section>
 
                 <section className="space-y-2">
                   <p className="text-sm font-medium">方式</p>
                   {EXPORT_MODE_OPTIONS.map((option) => (
-                    <button
+                    <SettingOptionCard
                       key={option.value}
-                      type="button"
-                      className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
-                        exportMode === option.value
-                          ? "border-primary bg-muted"
-                          : "bg-background hover:bg-accent"
-                      }`}
+                      icon={option.value === "merged" ? FileArchive : FolderOpen}
+                      title={option.label}
+                      description={option.description}
+                      active={exportMode === option.value}
                       onClick={() => setExportMode(option.value)}
-                    >
-                      <span className="block font-medium">{option.label}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">
-                        {option.description}
-                      </span>
-                    </button>
+                    />
                   ))}
                 </section>
               </div>
@@ -633,27 +634,14 @@ export function SettingsDialog() {
               />
               <div className="grid gap-2 sm:grid-cols-3">
                 {WORD_COUNT_OPTIONS.map((option) => (
-                  <button
+                  <SettingOptionCard
                     key={option.value}
-                    type="button"
-                    className={`rounded-md border p-3 text-left text-sm transition-colors ${
-                      wordCountMode === option.value
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "bg-background hover:bg-accent"
-                    }`}
+                    icon={Hash}
+                    title={option.label}
+                    description={option.description}
+                    active={wordCountMode === option.value}
                     onClick={() => setWordCountMode(option.value)}
-                  >
-                    <span className="block font-medium">{option.label}</span>
-                    <span
-                      className={`mt-1 block text-xs ${
-                        wordCountMode === option.value
-                          ? "text-primary-foreground/75"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {option.description}
-                    </span>
-                  </button>
+                  />
                 ))}
               </div>
             </div>
@@ -702,6 +690,44 @@ function SectionHeading({
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </div>
+  );
+}
+
+function SettingOptionCard({
+  icon: Icon,
+  title,
+  description,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex w-full items-start gap-2 rounded-md border p-3 text-left text-sm transition-colors",
+        active ? "border-primary bg-primary/5 shadow-sm" : "bg-background hover:bg-accent/70",
+      )}
+      onClick={onClick}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+          active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-medium">{title}</span>
+        <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+      </span>
+    </button>
   );
 }
 

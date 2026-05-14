@@ -36,7 +36,7 @@
 | **F8 字数统计** | writing_sessions 生命周期（mount start / unmount end / 30 秒无输入自动结束）；再次输入自动开启新 session；localtime 时区修正；Footer 实时字数 + 今日累计（含当前编辑会话增量）+ 本段/选中字数；Dashboard：今日/本周/本月/连续写作卡片 + 全书目标进度条 + 30/90/365 天热力图 + Recharts 柱状图；设置中支持字符 / 不计空白 / 中英混合计数模式 |
 | **F10 基础搜索** | SearchDialog 已接入当前作品的章节标题/摘要、角色卡、大纲节点搜索；结果可跳转章节或切换左侧角色/大纲 Tab；前端结果显示命中片段并高亮关键词；章节正文接入 SQLite FTS5，保存时写入纯文本索引；结果按章节 / 正文 / 角色 / 大纲分组；分组标题、结果图标徽块、空状态与加载态已精修 |
 | **F11 命令面板** | CommandPalette 已接入真实数据；支持导航命令、设置/搜索操作、章节跳转、角色/大纲 Tab 切换；最近使用置顶并持久化最近 6 个项目；命令项已改为图标徽块 + 主副文本结构，增强导航/操作/章节/角色/大纲的可扫读性 |
-| **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量；备份目录/自动备份开关写入 SQLite `settings` 表；AI Provider 配置支持 OpenAI 兼容 / Anthropic / Gemini，密钥只写不回显，前端仅显示配置状态；设置 Tab 和分组标题已接入语义图标 |
+| **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量；备份目录/自动备份开关写入 SQLite `settings` 表；AI Provider 配置支持 OpenAI 兼容 / Anthropic / Gemini，密钥只写不回显，前端仅显示配置状态；设置 Tab、分组标题、AI provider、备份开关、导出/字数选项卡片已完成语义图标和状态精修 |
 | **F13 导出** | SettingsDialog 新增导出页；Rust 侧按章节树顺序导出当前作品；支持 Markdown / Plain Text，支持合并单文件与按章拆分；导出文件写入应用数据目录 `wordforge/exports`；导出完成后可从 toast 或导出页打开导出位置 |
 | **F14 备份** | 已接入备份设置读取/保存与手动立即备份；Rust 侧复制当前 SQLite DB 到指定目录并生成 `wordforge-时间戳.db`；应用启动后若已过本地时间 03:00，当天最多自动备份一次；保留最近 7 份备份 |
 | **F15 CI/CD** | 已新增 `.github/workflows/ci.yml` 与 `release.yml`；CI 在 push/PR 上执行 lint、前端 build、cargo fmt、clippy；release 在 tag `v*` 上生成 Tauri draft release（Windows + macOS universal） |
