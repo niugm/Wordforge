@@ -102,6 +102,16 @@ export interface AiCredentialSettings {
   hasApiKey: boolean;
 }
 
+export type AiPolishKind = "condense" | "expand" | "describe" | "tone" | "free";
+
+export interface AiPolishResult {
+  provider: AiProvider;
+  model: string;
+  kind: AiPolishKind;
+  originalText: string;
+  resultText: string;
+}
+
 export type ExportFormat = "markdown" | "plainText";
 export type ExportMode = "merged" | "chapterFiles";
 

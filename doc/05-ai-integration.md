@@ -65,6 +65,36 @@ pub struct ChatRequest {
 
 ## 5.4 IPC 协议
 
+当前已实现非流式 MVP：
+
+```ts
+type AiPolishKind = 'condense' | 'expand' | 'describe' | 'tone' | 'free';
+
+interface AiPolishArgs {
+  provider: 'openai' | 'anthropic' | 'gemini';
+  kind: AiPolishKind;
+  text: string;
+  instruction?: string | null;
+  projectId?: string | null;
+}
+
+interface AiPolishResult {
+  provider: 'openai' | 'anthropic' | 'gemini';
+  model: string;
+  kind: AiPolishKind;
+  originalText: string;
+  resultText: string;
+}
+```
+
+说明：
+- `openai` 已接入 OpenAI-compatible `/chat/completions` 非流式请求。
+- `anthropic` / `gemini` 暂保留配置入口，调用时返回未支持提示。
+- `projectId` 存在时，输入和输出会写入 `ai_messages.scope = 'polish'`。
+- 超过 5000 字的文本会在 Rust 侧拒绝。
+
+后续 streaming 目标协议：
+
 ```ts
 // invoke
 type AiPolishKind = 'condense' | 'expand' | 'tone-shift' | 'translate' | 'free';

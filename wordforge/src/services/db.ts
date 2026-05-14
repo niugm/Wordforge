@@ -6,6 +6,8 @@ import type {
   Character,
   CharacterInput,
   AiCredentialSettings,
+  AiPolishKind,
+  AiPolishResult,
   AiProvider,
   BackupResult,
   BackupSettings,
@@ -134,6 +136,16 @@ export const settingsRepo = {
 
   exportChapter: (input: { chapterId: string; format: ExportFormat }) =>
     invoke<ExportResult>("export_chapter", input),
+};
+
+export const aiRepo = {
+  polish: (input: {
+    provider: AiProvider;
+    kind: AiPolishKind;
+    text: string;
+    instruction?: string | null;
+    projectId?: string | null;
+  }) => invoke<AiPolishResult>("ai_polish", input),
 };
 
 export const searchRepo = {

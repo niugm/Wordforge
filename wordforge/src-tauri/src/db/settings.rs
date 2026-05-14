@@ -270,6 +270,25 @@ pub async fn delete_ai_credential(pool: &SqlitePool, provider: String) -> AppRes
     Ok(())
 }
 
+pub async fn load_ai_credential_with_secret(
+    pool: &SqlitePool,
+    provider: String,
+) -> AppResult<(AiCredentialSettings, String)> {
+    migrate_legacy_ai_credentials(pool).await?;
+    let provider = normalize_provider(provider)?;
+    let credential = get_ai_credential(pool, &provider).await?;
+    if !credential.has_api_key {
+        return Err(AppError::InvalidInput(
+            "ai api key is not configured".into(),
+        ));
+    }
+    let api_key = load_ai_api_key(&provider)?;
+    if api_key.trim().is_empty() {
+        return Err(AppError::InvalidInput("ai api key is empty".into()));
+    }
+    Ok((credential, api_key))
+}
+
 async fn get_ai_credential(pool: &SqlitePool, provider: &str) -> AppResult<AiCredentialSettings> {
     let row = sqlx::query_as::<_, StoredAiCredential>(
         "SELECT provider, base_url, model, length(ciphertext) > 0 AS has_api_key
@@ -374,6 +393,16 @@ async fn migrate_legacy_ai_credentials(pool: &SqlitePool) -> AppResult<()> {
 fn store_ai_api_key(provider: &str, api_key: &str) -> AppResult<()> {
     ai_keyring_entry(provider)?.set_password(api_key)?;
     Ok(())
+}
+
+fn load_ai_api_key(provider: &str) -> AppResult<String> {
+    match ai_keyring_entry(provider)?.get_password() {
+        Ok(api_key) => Ok(api_key),
+        Err(keyring::Error::NoEntry) => Err(AppError::InvalidInput(
+            "ai api key is not configured".into(),
+        )),
+        Err(error) => Err(error.into()),
+    }
 }
 
 fn delete_ai_api_key(provider: &str) -> AppResult<()> {

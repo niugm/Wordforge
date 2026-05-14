@@ -228,14 +228,16 @@ MVP 可先复用：
 ### Step 2：Provider 抽象
 
 - 新增 `src-tauri/src/ai/`。
-- 首发 `OpenAiCompatibleProvider`。
+- 已新增 `src-tauri/src/ai/`，包含 `LlmProvider` trait 雏形、OpenAI-compatible provider 和 Rust 侧提示词模板。
+- 首发 `OpenAiCompatibleProvider` 已支持非流式 `/chat/completions`。
 - 暂不做 Anthropic/Gemini 实调用，但保留 trait 和错误提示。
 
 ### Step 3：非流式段落精修
 
-- `ai_polish` command。
-- 前端选区入口 + 右侧 AI 面板结果卡。
-- 支持替换 / 插入 / 复制。
+- `ai_polish` command 已实现。
+- 右侧 AI 面板已提供手动粘贴文本入口，可生成候选结果、复制、重试。
+- 当前项目可用时，用户输入和模型结果写入 `ai_messages.scope = 'polish'`。
+- 编辑器选区入口、替换 / 插入正文、diff 对照仍在下一步。
 
 ### Step 4：Streaming
 

@@ -1,3 +1,4 @@
+mod ai;
 mod commands;
 mod db;
 mod error;
@@ -79,6 +80,7 @@ pub fn run() {
             commands::settings::list_ai_credentials,
             commands::settings::save_ai_credential,
             commands::settings::delete_ai_credential,
+            commands::ai::ai_polish,
             commands::exports::export_project,
             commands::exports::export_chapter,
             commands::search::search_chapter_body,

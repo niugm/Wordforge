@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已接入 AI Key keyring 安全存储）
+> 更新时间：2026-05-15（已接入 AI 非流式段落精修 MVP）
 
 ## 当前分支状态
 
@@ -21,9 +21,33 @@
 - `feat: choose project export directory` 已提交。
 - `docs: prioritize AI work` 已提交。
 - `docs: design AI writing assistant` 已提交。
-- 当前工作树干净。
+- `a72d3a0 feat: store AI keys in system keyring` 已提交。
+- 当前工作树包含本轮 AI 精修 MVP 改动，待验证后提交。
 
 ## 本轮已完成
+
+### F6 AI 段落精修 MVP（非流式）
+
+- 新增 Rust `ai` 模块：
+  - `LlmProvider` trait 雏形
+  - `OpenAiCompatibleProvider`
+  - Rust 侧提示词模板
+- 新增 `reqwest` 和 `async-trait` 依赖。
+- 新增 `ai_polish` IPC：
+  - 支持 `condense` / `expand` / `describe` / `tone` / `free`
+  - OpenAI-compatible provider 使用 `/chat/completions` 非流式请求
+  - 默认 base URL 为 `https://api.openai.com/v1`
+  - 未配置模型时默认 `gpt-4.1-mini`
+  - 后端限制输入最多 5000 字
+- AI 请求从 Rust 侧读取 keyring 密钥，前端仍只知道 `hasApiKey`。
+- 当前项目 ID 可用时，精修输入与模型结果写入 `ai_messages.scope = 'polish'`。
+- 右侧 AI 面板从占位状态改为可用手动入口：
+  - provider 选择
+  - 凝练 / 扩写 / 描写 / 语气 / 自由指令
+  - 原文输入字数限制
+  - 结果卡片
+  - 复制 / 重试
+- 暂未做编辑器选区自动带入、替换/插入正文、diff 对照和 streaming。
 
 ### F12 设置完善
 
@@ -138,6 +162,11 @@
 ## 主要改动文件
 
 - `wordforge/src-tauri/src/db/settings.rs`
+- `wordforge/src-tauri/src/ai/mod.rs`
+- `wordforge/src-tauri/src/ai/openai.rs`
+- `wordforge/src-tauri/src/ai/prompts.rs`
+- `wordforge/src-tauri/src/commands/ai.rs`
+- `wordforge/src-tauri/src/error.rs`
 - `wordforge/src-tauri/src/commands/settings.rs`
 - `wordforge/src-tauri/src/db/exports.rs`
 - `wordforge/src-tauri/src/commands/exports.rs`
@@ -149,6 +178,7 @@
 - `wordforge/src-tauri/src/lib.rs`
 - `wordforge/src/components/shell/SettingsDialog.tsx`
 - `wordforge/src/hooks/useSettings.ts`
+- `wordforge/src/hooks/useAi.ts`
 - `wordforge/src/hooks/useChapters.ts`
 - `wordforge/src/services/db.ts`
 - `wordforge/src/types/db.ts`
@@ -157,11 +187,13 @@
 - `wordforge/src/components/workspace/Footer.tsx`
 - `wordforge/src/components/workspace/LeftSidebar.tsx`
 - `wordforge/src/components/workspace/RightSidebar.tsx`
+- `wordforge/src/components/workspace/panels/AiAssistant.tsx`
 - `wordforge/src/components/workspace/panels/ChapterTree.tsx`
 - `wordforge/src/components/shell/CommandPalette.tsx`
 - `wordforge/src/components/shell/SearchDialog.tsx`
 - `wordforge/src/components/shell/SettingsDialog.tsx`
 - `doc/12-ai-writing-design.md`
+- `doc/05-ai-integration.md`
 - `doc/07-features.md`
 - `doc/08-roadmap.md`
 
@@ -178,13 +210,15 @@
 
 ## 注意事项
 
-- AI Key 已接入 keyring；后续 AI 调用从 Rust 侧读取系统凭据库，不从前端读取明文。
+- AI Key 已接入 keyring；AI 精修调用从 Rust 侧读取系统凭据库，不从前端读取明文。
+- 右侧 AI 面板现在是手动粘贴文本的 MVP；下一步再和 TipTap 选区/当前段落打通。
+- Anthropic/Gemini 暂只有配置入口，没有真实调用。
 - 导出已接入 `tauri-plugin-dialog` 做目录选择；未选择时仍写入应用数据目录。
 - Docx 导出仍未实现。
 - F15 CI/CD 还缺首次 GitHub Actions 实跑验证。
 
 ## 建议下一步
 
-1. 实现 Rust 侧 `LlmProvider` trait 和 OpenAI-compatible provider。
-2. 接着做非流式 `ai_polish` command，跑通凝练/扩写。
-3. 然后做 F6 段落精修 MVP：选区入口、右侧结果卡、替换/插入/复制。
+1. 把 TipTap 选区 / 当前段落自动送入右侧 AI 面板。
+2. 实现 `替换原文` / `插入下方`，并在替换前写入 `revisions.source = 'ai_polish'`。
+3. 增加结果对照 / diff，再接 streaming。

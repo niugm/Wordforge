@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod chapters;
 pub mod characters;
 pub mod exports;

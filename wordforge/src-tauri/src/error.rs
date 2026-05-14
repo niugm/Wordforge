@@ -17,6 +17,9 @@ pub enum AppError {
     #[error("keyring error: {0}")]
     Keyring(#[from] keyring::Error),
 
+    #[error("network error: {0}")]
+    Network(#[from] reqwest::Error),
+
     #[error("not found: {0}")]
     NotFound(String),
 
@@ -33,6 +36,7 @@ impl serde::Serialize for AppError {
             Self::Io(_) => "Io",
             Self::Tauri(_) => "Tauri",
             Self::Keyring(_) => "Keyring",
+            Self::Network(_) => "Network",
             Self::NotFound(_) => "NotFound",
             Self::InvalidInput(_) => "InvalidInput",
         };
