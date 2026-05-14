@@ -464,7 +464,7 @@ export function SettingsDialog() {
                 <span>
                   <span className="block font-medium">启用自动备份</span>
                   <span className="text-xs text-muted-foreground">
-                    当前版本保存开关，定时执行将在后续接入。
+                    应用启动后若已过本地时间 03:00，当天最多自动备份一次。
                   </span>
                 </span>
                 <input
@@ -485,7 +485,7 @@ export function SettingsDialog() {
                 <div className="text-sm">
                   <p className="font-medium">立即备份</p>
                   <p className="text-xs text-muted-foreground">
-                    生成 `wordforge-时间戳.db` 到备份目录。
+                    生成 `wordforge-时间戳.db` 到备份目录，并保留最近 7 份。
                   </p>
                 </div>
                 <Button

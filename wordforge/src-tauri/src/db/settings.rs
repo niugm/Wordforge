@@ -8,6 +8,9 @@ use crate::error::{AppError, AppResult};
 
 const BACKUP_DIR_KEY: &str = "backup.dir";
 const BACKUP_ENABLED_KEY: &str = "backup.enabled";
+const BACKUP_LAST_AUTO_DAY_KEY: &str = "backup.last_auto_day";
+const AUTO_BACKUP_HOUR: i64 = 3;
+const BACKUP_KEEP_FILES: usize = 7;
 const AI_PROVIDERS: [&str; 3] = ["openai", "anthropic", "gemini"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,8 +91,39 @@ pub async fn backup_now(
         .or(configured)
         .ok_or_else(|| AppError::InvalidInput("backup directory is required".into()))?;
 
-    std::fs::create_dir_all(&target_dir)?;
+    backup_to_dir(app_data_dir, &target_dir)
+}
 
+pub async fn run_auto_backup_if_due(
+    pool: &SqlitePool,
+    app_data_dir: &Path,
+) -> AppResult<Option<BackupResult>> {
+    let settings = get_backup_settings(pool).await?;
+    if !settings.auto_backup_enabled {
+        return Ok(None);
+    }
+
+    let Some(target_dir) = settings.backup_dir else {
+        return Ok(None);
+    };
+
+    let (today, hour) = local_day_and_hour(pool).await?;
+    if hour < AUTO_BACKUP_HOUR {
+        return Ok(None);
+    }
+
+    let last_day = get_setting(pool, BACKUP_LAST_AUTO_DAY_KEY).await?;
+    if last_day.as_deref() == Some(today.as_str()) {
+        return Ok(None);
+    }
+
+    let result = backup_to_dir(app_data_dir, &target_dir)?;
+    set_setting(pool, BACKUP_LAST_AUTO_DAY_KEY, Some(&today)).await?;
+    Ok(Some(result))
+}
+
+fn backup_to_dir(app_data_dir: &Path, target_dir: &str) -> AppResult<BackupResult> {
+    std::fs::create_dir_all(target_dir)?;
     let source = app_data_dir.join("wordforge").join("wordforge.db");
     if !source.exists() {
         return Err(AppError::NotFound(format!("database {}", source.display())));
@@ -97,10 +131,44 @@ pub async fn backup_now(
 
     let target = PathBuf::from(target_dir).join(format!("wordforge-{}.db", now_ms()));
     std::fs::copy(&source, &target)?;
+    prune_backups(Path::new(target_dir))?;
 
     Ok(BackupResult {
         path: target.to_string_lossy().to_string(),
     })
+}
+
+async fn local_day_and_hour(pool: &SqlitePool) -> AppResult<(String, i64)> {
+    let row: (String, i64) = sqlx::query_as(
+        "SELECT date('now', 'localtime'), CAST(strftime('%H', 'now', 'localtime') AS INTEGER)",
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(row)
+}
+
+fn prune_backups(target_dir: &Path) -> AppResult<()> {
+    let mut entries = Vec::new();
+
+    for entry in std::fs::read_dir(target_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if !name.starts_with("wordforge-") || !name.ends_with(".db") {
+            continue;
+        }
+        let modified = entry.metadata()?.modified().ok();
+        entries.push((path, modified));
+    }
+
+    entries.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| b.0.cmp(&a.0)));
+    for (path, _) in entries.into_iter().skip(BACKUP_KEEP_FILES) {
+        std::fs::remove_file(path)?;
+    }
+
+    Ok(())
 }
 
 pub async fn list_ai_credentials(pool: &SqlitePool) -> AppResult<Vec<AiCredentialSettings>> {

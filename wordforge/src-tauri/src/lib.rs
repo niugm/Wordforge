@@ -3,7 +3,7 @@ mod db;
 mod error;
 
 use tauri::Manager;
-use tracing::error;
+use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,6 +25,19 @@ pub fn run() {
                 })?;
             app.manage(pool);
             app.manage(app_data_dir);
+            let pool = app.state::<sqlx::SqlitePool>().inner().clone();
+            let app_data_dir = app.state::<std::path::PathBuf>().inner().clone();
+            tauri::async_runtime::spawn(async move {
+                match db::settings::run_auto_backup_if_due(&pool, &app_data_dir).await {
+                    Ok(Some(result)) => {
+                        info!(path = %result.path, "automatic database backup completed");
+                    }
+                    Ok(None) => {}
+                    Err(e) => {
+                        error!(error = %e, "automatic database backup failed");
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
