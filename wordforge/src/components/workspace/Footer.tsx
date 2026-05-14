@@ -1,5 +1,6 @@
-import { Focus } from "lucide-react";
+import { CalendarDays, FileText, Focus, Pilcrow } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconLabel } from "@/components/ui/icon-label";
 import { Separator } from "@/components/ui/separator";
 import { useWritingStats } from "@/hooks/useSessions";
 import { useUIStore } from "@/store/useUIStore";
@@ -17,15 +18,17 @@ export function Footer() {
 
   return (
     <footer className="flex h-8 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
-      <span>{liveWordCount != null ? `${liveWordCount} 字 / 本章` : "0 字 / 本章"}</span>
+      <IconLabel icon={FileText}>
+        {liveWordCount != null ? `${liveWordCount} 字` : "0 字"}
+      </IconLabel>
       <Separator orientation="vertical" className="h-4" />
-      <span>
+      <IconLabel icon={Pilcrow}>
         {liveScopeWords != null
           ? `${liveScopeWords.label} ${liveScopeWords.words} 字`
           : "本段 0 字"}
-      </span>
+      </IconLabel>
       <Separator orientation="vertical" className="h-4" />
-      <span>今日 {todayWords} 字</span>
+      <IconLabel icon={CalendarDays}>今日 {todayWords} 字</IconLabel>
 
       <Button
         variant="ghost"

@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-14 22:50（`95d3e8f`、`4d04b91`、`8be6e2a`、`8a933fd`、`5bda4d9` 已提交；之后继续补了 F8 本段字数与 F10 分类展示）
+> 更新时间：2026-05-15（已提交至 `6f4b31c`；之后继续做 UI 精修阶段 1）
 
 ## 当前分支状态
 
@@ -11,7 +11,9 @@
 - `8be6e2a feat: enable automatic database backups` 已提交。
 - `8a933fd feat: add chapter copy and export` 已提交。
 - `5bda4d9 feat: add chapter body search` 已提交。
-- 当前工作树包含 F8 本段字数与 F10 分类展示的未提交改动。
+- `c7a79ca feat: show paragraph words and grouped search` 已提交。
+- `6f4b31c fix: update scope word count on selection` 已提交。
+- 当前工作树包含 UI 精修阶段 1 的未提交改动。
 
 ## 本轮已完成
 
@@ -62,6 +64,12 @@
 - Footer 新增“本段 / 选中字数”。
 - 编辑器输入、移动光标或改变选区时，按当前字数计数模式统计光标所在段落或选中文本。
 
+### UI 精修阶段 1
+
+- 新增 `IconLabel` 小组件统一 icon + text 呈现。
+- 左侧栏 Tab、右侧栏 Tab、Footer 字数区、TitleBar 面包屑接入 lucide 语义图标。
+- TitleBar 分隔符弱化，Footer 字数信息改为图标化显示。
+
 ### 章节缓存同步修复
 
 - 修复右键修改章节状态后，编辑区顶部状态徽标不实时同步的问题。
@@ -111,6 +119,6 @@
 
 ## 建议下一步
 
-1. 提交当前 F8/F10 增强改动，建议提交信息：`feat: show paragraph words and grouped search`
+1. 提交当前 UI 精修阶段 1 改动，建议提交信息：`style: polish workspace shell`
 2. 接着优先补 F15 Actions 实跑问题，或者做 F13 导出深化（文件选择器 / Docx）。
 3. 如果继续 AI 方向，先处理密钥存储安全，再做 F6 段落精修。

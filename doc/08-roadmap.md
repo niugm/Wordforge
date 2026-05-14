@@ -26,7 +26,7 @@
 | 功能模块 | 实现细节 |
 |---|---|
 | **脚手架** | Tauri 2 + React 19 + Vite + TypeScript；Tailwind v4 + shadcn/ui (Radix Nova)；Zustand + TanStack Query + React Router v7 |
-| **UI 骨架** | 三栏 Workspace（左侧边栏 / 编辑区 / 右侧边栏）；resizable panels（v4 API）；ThemeProvider（亮/暗/护眼）；CommandPalette / SettingsDialog / SearchDialog 框架 |
+| **UI 骨架** | 三栏 Workspace（左侧边栏 / 编辑区 / 右侧边栏）；resizable panels（v4 API）；ThemeProvider（亮/暗/护眼）；CommandPalette / SettingsDialog / SearchDialog 框架；Workspace shell 已接入语义图标（左右 Tab、Footer 字数区、TitleBar 面包屑） |
 | **数据库** | SQLite via sqlx 直连（非 plugin-sql）；ULID 主键；unix ms 时间戳；AppError 统一错误序列化；`sqlx::migrate!` 自动迁移；完整 schema（projects / chapters / characters / outlines / annotations / revisions / writing_sessions / ai_messages / settings / ai_credentials / chapters_fts） |
 | **F1 项目管理** | 新建 / 重命名 / 编辑信息（简介+目标字数）/ 归档 / 删除；启动自动回跳 last_project_id；切换作品按钮；OS 窗口标题跟随项目 |
 | **F2 章节管理** | 树形 CRUD；dnd-kit 同级拖拽排序；Alt+↑↓ 键盘排序；状态标记（草稿/修订中/已完成）；跨父节点移动（MoveChapterDialog）；Rust 侧禁止移动到自身/后代节点下并禁止跨作品挂载；右键菜单完整；章节状态 / 重命名 / 移动后同步章节树与编辑区详情缓存；支持复制章节树与单章节 Markdown / Plain Text 导出 |
@@ -40,7 +40,7 @@
 | **F13 导出** | SettingsDialog 新增导出页；Rust 侧按章节树顺序导出当前作品；支持 Markdown / Plain Text，支持合并单文件与按章拆分；导出文件写入应用数据目录 `wordforge/exports`；导出完成后可从 toast 或导出页打开导出位置 |
 | **F14 备份** | 已接入备份设置读取/保存与手动立即备份；Rust 侧复制当前 SQLite DB 到指定目录并生成 `wordforge-时间戳.db`；应用启动后若已过本地时间 03:00，当天最多自动备份一次；保留最近 7 份备份 |
 | **F15 CI/CD** | 已新增 `.github/workflows/ci.yml` 与 `release.yml`；CI 在 push/PR 上执行 lint、前端 build、cargo fmt、clippy；release 在 tag `v*` 上生成 Tauri draft release（Windows + macOS universal） |
-| **UX 细节** | Sonner toast 全局（所有写操作成功/错误提示）；Bundle 拆分（manualChunks：vendor-react/tiptap/recharts/dnd/ui）；标题栏面包屑分隔线垂直居中 |
+| **UX 细节** | Sonner toast 全局（所有写操作成功/错误提示）；Bundle 拆分（manualChunks：vendor-react/tiptap/recharts/dnd/ui）；标题栏面包屑分隔线垂直居中；Shell 图标语义统一 |
 
 ### 待实现（下阶段优先）
 

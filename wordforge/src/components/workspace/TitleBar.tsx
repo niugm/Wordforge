@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { Menu, Settings } from "lucide-react";
+import { BookOpen, FileText, Menu, Settings } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Button } from "@/components/ui/button";
+import { IconLabel } from "@/components/ui/icon-label";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { useChapter } from "@/hooks/useChapters";
@@ -30,20 +31,26 @@ export function TitleBar() {
       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleLeft}>
         <Menu className="h-4 w-4" />
       </Button>
-      <Separator orientation="vertical" className="h-5 self-center" />
-      <nav className="flex min-w-0 items-center gap-1 text-sm">
+      <Separator orientation="vertical" className="h-5 self-center opacity-60" />
+      <nav className="flex min-w-0 items-center gap-1.5 text-sm">
         <span className="font-medium">Wordforge</span>
-        <span className="text-muted-foreground">/</span>
-        <span className={cn("truncate", !currentProject && "text-muted-foreground")}>
+        <span className="text-muted-foreground/60">/</span>
+        <IconLabel
+          icon={BookOpen}
+          className={cn("max-w-44", !currentProject && "text-muted-foreground")}
+          iconClassName="text-muted-foreground"
+        >
           {currentProject?.name ?? "未选作品"}
-        </span>
-        <span className="text-muted-foreground">/</span>
-        <span
-          className={cn("truncate", !currentChapter && "text-muted-foreground")}
+        </IconLabel>
+        <span className="text-muted-foreground/60">/</span>
+        <IconLabel
+          icon={FileText}
+          className={cn("max-w-56", !currentChapter && "text-muted-foreground")}
+          iconClassName="text-muted-foreground"
           title={currentChapter?.title}
         >
           {currentChapter?.title ?? "未选章节"}
-        </span>
+        </IconLabel>
       </nav>
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />

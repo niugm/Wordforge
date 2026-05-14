@@ -1,3 +1,5 @@
+import { History, MessageSquareText, Sparkles } from "lucide-react";
+import { IconLabel } from "@/components/ui/icon-label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AiAssistant } from "@/components/workspace/panels/AiAssistant";
@@ -9,9 +11,15 @@ export function RightSidebar() {
     <div className="flex h-full flex-col bg-sidebar">
       <Tabs defaultValue="ai" className="flex-1 overflow-hidden">
         <TabsList className="m-2 grid grid-cols-3">
-          <TabsTrigger value="ai">AI</TabsTrigger>
-          <TabsTrigger value="notes">批注</TabsTrigger>
-          <TabsTrigger value="history">修订</TabsTrigger>
+          <TabsTrigger value="ai" className="min-w-0 px-2">
+            <IconLabel icon={Sparkles}>AI</IconLabel>
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="min-w-0 px-2">
+            <IconLabel icon={MessageSquareText}>批注</IconLabel>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="min-w-0 px-2">
+            <IconLabel icon={History}>修订</IconLabel>
+          </TabsTrigger>
         </TabsList>
         <ScrollArea className="h-[calc(100%-3rem)]">
           <TabsContent value="ai" className="m-0">

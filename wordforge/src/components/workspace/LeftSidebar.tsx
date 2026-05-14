@@ -1,6 +1,7 @@
-import { ArrowLeftRight, Settings } from "lucide-react";
+import { ArrowLeftRight, BookOpen, ListTree, Settings, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
+import { IconLabel } from "@/components/ui/icon-label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,9 +31,15 @@ export function LeftSidebar() {
         className="flex-1 overflow-hidden"
       >
         <TabsList className="m-2 grid grid-cols-3">
-          <TabsTrigger value="chapters">章节</TabsTrigger>
-          <TabsTrigger value="characters">角色</TabsTrigger>
-          <TabsTrigger value="outline">大纲</TabsTrigger>
+          <TabsTrigger value="chapters" className="min-w-0 px-2">
+            <IconLabel icon={BookOpen}>章节</IconLabel>
+          </TabsTrigger>
+          <TabsTrigger value="characters" className="min-w-0 px-2">
+            <IconLabel icon={UsersRound}>角色</IconLabel>
+          </TabsTrigger>
+          <TabsTrigger value="outline" className="min-w-0 px-2">
+            <IconLabel icon={ListTree}>大纲</IconLabel>
+          </TabsTrigger>
         </TabsList>
         <ScrollArea className="h-[calc(100%-3rem)]">
           <TabsContent value="chapters" className="m-0">
