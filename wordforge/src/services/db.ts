@@ -1,5 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Chapter, ChapterStatus, DailyWords, Project, WritingSession, WritingStats } from "@/types/db";
+import type {
+  Chapter,
+  ChapterStatus,
+  Character,
+  CharacterInput,
+  DailyWords,
+  OutlineInput,
+  OutlineNode,
+  Project,
+  WritingSession,
+  WritingStats,
+} from "@/types/db";
 
 export const projectsRepo = {
   list: () => invoke<Project[]>("list_projects"),
@@ -42,6 +53,35 @@ export const chaptersRepo = {
     invoke<void>("reorder_chapters", input),
 
   remove: (input: { id: string }) => invoke<void>("delete_chapter", input),
+};
+
+export const charactersRepo = {
+  list: (input: { projectId: string }) => invoke<Character[]>("list_characters", input),
+
+  create: (input: { projectId: string; input: CharacterInput }) =>
+    invoke<Character>("create_character", input),
+
+  update: (input: { id: string; input: CharacterInput }) =>
+    invoke<void>("update_character", input),
+
+  remove: (input: { id: string }) => invoke<void>("delete_character", input),
+};
+
+export const outlinesRepo = {
+  list: (input: { projectId: string }) => invoke<OutlineNode[]>("list_outlines", input),
+
+  create: (input: { projectId: string; parentId?: string | null; input: OutlineInput }) =>
+    invoke<OutlineNode>("create_outline", input),
+
+  update: (input: { id: string; input: OutlineInput }) => invoke<void>("update_outline", input),
+
+  move: (input: { id: string; parentId: string | null; sort: number }) =>
+    invoke<void>("move_outline", input),
+
+  reorder: (input: { items: Array<{ id: string; sort: number }> }) =>
+    invoke<void>("reorder_outlines", input),
+
+  remove: (input: { id: string }) => invoke<void>("delete_outline", input),
 };
 
 export const sessionsRepo = {

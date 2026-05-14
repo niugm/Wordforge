@@ -44,6 +44,7 @@ xcode-select --install
 ## 9.2 启动开发
 
 ```sh
+cd wordforge
 pnpm install
 pnpm tauri dev          # 第一次会编译 Rust，可能 5-10 分钟
 ```
@@ -53,6 +54,7 @@ pnpm tauri dev          # 第一次会编译 Rust，可能 5-10 分钟
 ## 9.3 本地构建产物
 
 ```sh
+cd wordforge
 pnpm tauri build
 ```
 
@@ -62,24 +64,26 @@ pnpm tauri build
 
 ## 9.4 GitHub Actions
 
-### `.github/workflows/ci.yml`（每次 push / PR）
+### `.github/workflows/ci.yml`（push 到 `main` / PR）
 
-- 矩阵：`ubuntu-latest` (lint only)
+- Runner：`windows-latest`
 - 步骤：
   1. checkout
-  2. setup node 20 + pnpm
-  3. `pnpm install --frozen-lockfile`
-  4. `pnpm lint`、`pnpm typecheck`
-  5. setup rust toolchain
-  6. `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`
+  2. setup pnpm 9 + node 20（缓存 `wordforge/pnpm-lock.yaml`）
+  3. 在 `wordforge/` 执行 `pnpm install --frozen-lockfile`
+  4. 在 `wordforge/` 执行 `pnpm lint`、`pnpm build`
+  5. setup Rust stable
+  6. 在 `wordforge/src-tauri/` 执行 `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`
 
 ### `.github/workflows/release.yml`（push tag `v*`）
 
 - 矩阵：`macos-latest` + `windows-latest`
+- macOS 构建使用 `--target universal-apple-darwin`，并安装 `aarch64-apple-darwin` / `x86_64-apple-darwin` targets。
+- Windows 构建使用默认 target。
 - 使用 `tauri-apps/tauri-action@v0`
-- 自动创建 GitHub Release，附 `.dmg` / `.msi`
+- 自动创建 GitHub draft Release，附 `.dmg` / `.msi` 等 bundle 产物。
 
-伪代码：
+当前实现：
 ```yaml
 on:
   push:
@@ -93,15 +97,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
       - uses: dtolnay/rust-toolchain@stable
       - run: pnpm install --frozen-lockfile
+        working-directory: wordforge
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          projectPath: wordforge
+          args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: 'Wordforge ${{ github.ref_name }}'
           releaseDraft: true
@@ -111,7 +118,7 @@ jobs:
 ## 9.5 发布流程
 
 1. `main` 通过 CI
-2. 更新 `package.json` 与 `src-tauri/tauri.conf.json` 中的 version
+2. 更新 `wordforge/package.json` 与 `wordforge/src-tauri/tauri.conf.json` 中的 version
 3. 更新 `CHANGELOG.md`
 4. `git tag v0.1.0 && git push origin v0.1.0`
 5. Actions 完成后到 Releases 页确认 → 把 draft 改为 publish

@@ -24,6 +24,46 @@ export interface Chapter {
   updatedAt: number;
 }
 
+export interface Character {
+  id: string;
+  projectId: string;
+  name: string;
+  alias: string | null;
+  avatarPath: string | null;
+  roleType: string | null;
+  profileMd: string;
+  attributesJson: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type CharacterInput = {
+  name: string;
+  alias: string | null;
+  avatarPath: string | null;
+  roleType: string | null;
+  profileMd: string;
+  attributesJson: string;
+};
+
+export type OutlineStatus = "idea" | "drafting" | "done";
+
+export interface OutlineNode {
+  id: string;
+  projectId: string;
+  parentId: string | null;
+  sort: number;
+  title: string;
+  contentMd: string;
+  status: OutlineStatus;
+}
+
+export type OutlineInput = {
+  title: string;
+  contentMd: string;
+  status: OutlineStatus;
+};
+
 export interface WritingSession {
   id: string;
   projectId: string;
@@ -34,6 +74,7 @@ export interface WritingSession {
 
 export interface WritingStats {
   todayWords: number;
+  weekWords: number;
   monthWords: number;
   streak: number;
 }
@@ -47,4 +88,3 @@ export interface AppErrorPayload {
   code: string;
   message: string;
 }
-

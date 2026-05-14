@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Underline } from "@tiptap/extension-underline";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { AlertCircle, Bold, Check, Italic, Loader2, Strikethrough, Underline as UnderlineIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button";
 import { EditorToolbar } from "@/components/workspace/EditorToolbar";
 import { useChapter, useChapterContent, useUpdateChapterContent } from "@/hooks/useChapters";
 import { useEndSession, useStartSession } from "@/hooks/useSessions";
+import { countWritingText, WORD_COUNT_MODE_LABELS } from "@/lib/wordCount";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/useUIStore";
 import type { Chapter, ChapterStatus } from "@/types/db";
+
+const AUTOSAVE_MS = 500;
+const IDLE_SESSION_END_MS = 30_000;
 
 const STATUS_META: Record<
   ChapterStatus,
@@ -84,6 +88,10 @@ function parseInitialContent(raw: string): object | string {
   return "";
 }
 
+function getEditorWordCount(editor: Editor, mode: Parameters<typeof countWritingText>[1]) {
+  return countWritingText(editor.getText(), mode);
+}
+
 type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
 
 function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialContent: string }) {
@@ -91,30 +99,86 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const startSession = useStartSession();
   const endSession = useEndSession(chapter.projectId);
   const setLiveWordCount = useUIStore((s) => s.setLiveWordCount);
+  const setLiveSessionWords = useUIStore((s) => s.setLiveSessionWords);
+  const editorPreferences = useUIStore((s) => s.editorPreferences);
+  const wordCountMode = useUIStore((s) => s.wordCountMode);
+  const focusMode = useUIStore((s) => s.focusMode);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [wordCount, setWordCount] = useState(chapter.wordCount);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorRef = useRef<Editor | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartWordsRef = useRef<number>(chapter.wordCount);
+  const currentWordsRef = useRef<number>(chapter.wordCount);
 
-  useEffect(() => {
+  function saveNow(editorInstance: Editor | null) {
+    if (!editorInstance) return;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const chars = getEditorWordCount(editorInstance, wordCountMode);
+    currentWordsRef.current = chars;
+    const json = editorInstance.getJSON();
+    setSaveStatus("saving");
+    update.mutate(
+      {
+        id: chapter.id,
+        contentJson: JSON.stringify(json),
+        wordCount: chars,
+      },
+      {
+        onSuccess: () => setSaveStatus("saved"),
+        onError: () => setSaveStatus("error"),
+      },
+    );
+  }
+
+  function startWritingSession(startWords = currentWordsRef.current) {
+    if (sessionIdRef.current || startSession.isPending) return;
     startSession.mutate(
       { projectId: chapter.projectId },
       {
         onSuccess: (session) => {
           sessionIdRef.current = session.id;
-          sessionStartWordsRef.current = chapter.wordCount;
+          sessionStartWordsRef.current = startWords;
+          setLiveSessionWords(0);
         },
       },
     );
+  }
+
+  function endWritingSession() {
+    const sid = sessionIdRef.current;
+    if (!sid) return;
+    const wordsWritten = Math.max(0, currentWordsRef.current - sessionStartWordsRef.current);
+    endSession.mutate({ id: sid, wordsWritten });
+    sessionIdRef.current = null;
+    sessionStartWordsRef.current = currentWordsRef.current;
+    setLiveSessionWords(0);
+  }
+
+  function scheduleIdleSessionEnd() {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => {
+      saveNow(editorRef.current);
+      endWritingSession();
+      idleTimer.current = null;
+    }, IDLE_SESSION_END_MS);
+  }
+
+  useEffect(() => {
+    startWritingSession(chapter.wordCount);
     return () => {
-      const sid = sessionIdRef.current;
-      if (sid) {
-        const wordsWritten = Math.max(0, sessionStartWordsRef.current - chapter.wordCount);
-        endSession.mutate({ id: sid, wordsWritten });
-        sessionIdRef.current = null;
+      if (idleTimer.current) {
+        clearTimeout(idleTimer.current);
+        idleTimer.current = null;
       }
+      saveNow(editorRef.current);
+      endWritingSession();
       setLiveWordCount(null);
+      setLiveSessionWords(0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -126,55 +190,63 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
     editorProps: {
       attributes: {
         class:
-          "ProseMirror min-h-[60vh] max-w-none px-8 py-8 focus:outline-none text-[15px] leading-7",
+          "ProseMirror mx-auto min-h-[60vh] px-8 py-8 focus:outline-none",
       },
     },
     onUpdate: ({ editor }) => {
       setSaveStatus("pending");
-      const chars = editor.storage.characterCount.characters() as number;
+      const chars = getEditorWordCount(editor, wordCountMode);
+      if (!sessionIdRef.current) {
+        startWritingSession(currentWordsRef.current);
+      }
       setWordCount(chars);
       setLiveWordCount(chars);
-      sessionStartWordsRef.current = chars;
+      currentWordsRef.current = chars;
+      setLiveSessionWords(chars - sessionStartWordsRef.current);
+      scheduleIdleSessionEnd();
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
-        const json = editor.getJSON();
-        setSaveStatus("saving");
-        update.mutate(
-          {
-            id: chapter.id,
-            contentJson: JSON.stringify(json),
-            wordCount: chars,
-          },
-          {
-            onSuccess: () => setSaveStatus("saved"),
-            onError: () => setSaveStatus("error"),
-          },
-        );
-      }, 500);
+        saveNow(editor);
+      }, AUTOSAVE_MS);
     },
   });
 
   useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const timer = setTimeout(() => {
+      const chars = getEditorWordCount(editor, wordCountMode);
+      setWordCount(chars);
+      setLiveWordCount(chars);
+      currentWordsRef.current = chars;
+      setLiveSessionWords(chars - sessionStartWordsRef.current);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [editor, setLiveSessionWords, setLiveWordCount, wordCountMode]);
+
+  useEffect(() => {
     setLiveWordCount(chapter.wordCount);
+    setLiveSessionWords(0);
     return () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
         saveTimer.current = null;
       }
-      if (!editor) return;
-      const chars = editor.storage.characterCount.characters() as number;
-      const json = editor.getJSON();
-      update.mutate({
-        id: chapter.id,
-        contentJson: JSON.stringify(json),
-        wordCount: chars,
-      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const statusMeta = STATUS_META[chapter.status];
+  const editorFontClass =
+    editorPreferences.fontFamily === "serif"
+      ? "font-serif"
+      : editorPreferences.fontFamily === "mono"
+        ? "font-mono"
+        : "font-sans";
 
   return (
     <div className="flex h-full flex-col">
@@ -183,11 +255,22 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
           {chapter.title}
         </h2>
         <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
-        <span className="ml-auto text-xs text-muted-foreground">{wordCount} 字</span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {wordCount} 字 · {WORD_COUNT_MODE_LABELS[wordCountMode]}
+        </span>
         <SaveIndicator status={saveStatus} />
       </div>
       <EditorToolbar editor={editor} />
-      <div className="flex-1 overflow-auto">
+      <div
+        className={cn("flex-1 overflow-auto", editorFontClass, focusMode && "wf-focus-mode")}
+        style={
+          {
+            "--wf-editor-font-size": `${editorPreferences.fontSize}px`,
+            "--wf-editor-line-height": editorPreferences.lineHeight,
+            "--wf-editor-measure": `${editorPreferences.measure}px`,
+          } as React.CSSProperties
+        }
+      >
         {editor && (
           <BubbleMenu
             editor={editor}

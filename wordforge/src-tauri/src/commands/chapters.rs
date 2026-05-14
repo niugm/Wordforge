@@ -26,10 +26,7 @@ pub async fn get_chapter(pool: State<'_, SqlitePool>, id: String) -> AppResult<C
 }
 
 #[tauri::command]
-pub async fn get_chapter_content(
-    pool: State<'_, SqlitePool>,
-    id: String,
-) -> AppResult<String> {
+pub async fn get_chapter_content(pool: State<'_, SqlitePool>, id: String) -> AppResult<String> {
     chapters::get_content(pool.inner(), &id).await
 }
 

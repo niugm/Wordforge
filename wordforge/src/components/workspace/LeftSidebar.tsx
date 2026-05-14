@@ -14,6 +14,8 @@ export function LeftSidebar() {
   const navigate = useNavigate();
   const toggleSettings = useUIStore((s) => s.toggleSettings);
   const setCurrentProject = useWorkspaceStore((s) => s.setCurrentProject);
+  const leftPanelTab = useWorkspaceStore((s) => s.leftPanelTab);
+  const setLeftPanelTab = useWorkspaceStore((s) => s.setLeftPanelTab);
 
   function switchProject() {
     setCurrentProject(null);
@@ -22,7 +24,11 @@ export function LeftSidebar() {
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <Tabs defaultValue="chapters" className="flex-1 overflow-hidden">
+      <Tabs
+        value={leftPanelTab}
+        onValueChange={(value) => setLeftPanelTab(value as typeof leftPanelTab)}
+        className="flex-1 overflow-hidden"
+      >
         <TabsList className="m-2 grid grid-cols-3">
           <TabsTrigger value="chapters">章节</TabsTrigger>
           <TabsTrigger value="characters">角色</TabsTrigger>

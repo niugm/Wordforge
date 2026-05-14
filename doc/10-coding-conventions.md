@@ -96,16 +96,24 @@ Closes #12
 - [ ] 没有死代码 / 注释代码
 - [ ] 没有 `console.log` / `dbg!`
 - [ ] 修改 schema 是否同时加迁移？
+- [ ] 完成功能、修复或流程变更后，是否同步更新 `doc/` 中的规划、路线图、验收标准或构建说明？
 - [ ] 是否影响安全（密钥、IPC 边界、SQL 拼接）？
 - [ ] 是否影响性能热路径？
 
-## 10.9 测试
+## 10.9 文档同步
+
+- 每次完成可见功能、行为变更、技术决策、目录结构调整、构建/发布流程调整后，必须同步更新 `doc/`。
+- 功能进度更新优先改 `07-features.md` 和 `08-roadmap.md`；技术方案变化优先改 `02-architecture.md`、`03-tech-stack.md`、`04-data-model.md`、`05-ai-integration.md`。
+- 构建、发布、CI、环境命令变化必须同步改 `09-build-and-release.md`。
+- 文档更新和代码变更尽量放在同一个提交中，避免路线图与实际实现漂移。
+
+## 10.10 测试
 
 - **TS 单测**：Vitest，关键纯函数（word-count、diff、prompt builder）
 - **Rust 单测**：常规 `#[cfg(test)] mod tests`，覆盖 db query / ai prompt 构造
 - **集成测试**：留到 v0.2（Tauri E2E）
 
-## 10.10 i18n
+## 10.11 i18n
 
 - 所有面向用户的字符串放在 `src/i18n/<lang>.json`
 - v0.1 默认仅中文；保留切换机制以便后续加英文

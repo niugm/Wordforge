@@ -190,4 +190,4 @@ v0.1 不引入软删除。"归档"用 `projects.archived`；章节误删可由 `
 
 - DB 文件位置：Tauri `path::app_data_dir()/wordforge/wordforge.db`
 - 备份：复制整个文件即可；自动备份默认每日凌晨触发（用户可关）。
-- Schema 迁移：`src-tauri/migrations/000X_*.sql` 命名，由 `tauri-plugin-sql` 顺序执行；**永不修改已发布的迁移文件**，新增即可。
+- Schema 迁移：`wordforge/src-tauri/migrations/000X_*.sql` 命名，由 Rust 侧 `sqlx::migrate!` 在启动时执行；**永不修改已发布的迁移文件**，新增即可。

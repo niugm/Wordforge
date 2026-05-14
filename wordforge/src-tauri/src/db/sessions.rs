@@ -19,6 +19,7 @@ pub struct WritingSession {
 #[serde(rename_all = "camelCase")]
 pub struct WritingStats {
     pub today_words: i64,
+    pub week_words: i64,
     pub month_words: i64,
     pub streak: i64,
 }
@@ -53,14 +54,13 @@ pub async fn start(pool: &SqlitePool, project_id: &str) -> AppResult<WritingSess
 }
 
 pub async fn end(pool: &SqlitePool, id: &str, words_written: i64) -> AppResult<()> {
-    let result = sqlx::query(
-        "UPDATE writing_sessions SET ended_at = ?, words_written = ? WHERE id = ?",
-    )
-    .bind(now_ms())
-    .bind(words_written.max(0))
-    .bind(id)
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("UPDATE writing_sessions SET ended_at = ?, words_written = ? WHERE id = ?")
+            .bind(now_ms())
+            .bind(words_written.max(0))
+            .bind(id)
+            .execute(pool)
+            .await?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound(format!("session {id}")));
@@ -74,6 +74,20 @@ pub async fn get_stats(pool: &SqlitePool, project_id: &str) -> AppResult<Writing
          FROM writing_sessions
          WHERE project_id = ?
            AND date(started_at/1000, 'unixepoch', 'localtime') = date('now', 'localtime')",
+    )
+    .bind(project_id)
+    .fetch_one(pool)
+    .await?;
+
+    let week_words: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(words_written), 0)
+         FROM writing_sessions
+         WHERE project_id = ?
+           AND date(started_at/1000, 'unixepoch', 'localtime') >= date(
+             'now',
+             'localtime',
+             '-' || ((CAST(strftime('%w', 'now', 'localtime') AS INTEGER) + 6) % 7) || ' days'
+           )",
     )
     .bind(project_id)
     .fetch_one(pool)
@@ -108,6 +122,7 @@ pub async fn get_stats(pool: &SqlitePool, project_id: &str) -> AppResult<Writing
 
     Ok(WritingStats {
         today_words,
+        week_words,
         month_words,
         streak,
     })
@@ -118,7 +133,8 @@ pub async fn get_daily_words(
     project_id: &str,
     days: i64,
 ) -> AppResult<Vec<DailyWords>> {
-    let modifier = format!("-{days} days");
+    let days = days.clamp(1, 365);
+    let modifier = format!("-{} days", days - 1);
     let rows = sqlx::query_as::<_, DailyWords>(
         "SELECT date(started_at/1000, 'unixepoch', 'localtime') as day,
                 SUM(words_written) as words

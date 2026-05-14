@@ -186,23 +186,61 @@ pub async fn move_to(
     parent_id: Option<&str>,
     sort: i64,
 ) -> AppResult<()> {
-    if let Some(p) = parent_id {
-        if p == id {
+    let project_id: Option<String> =
+        sqlx::query_scalar("SELECT project_id FROM chapters WHERE id = ?")
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
+    let project_id = project_id.ok_or_else(|| AppError::NotFound(format!("chapter {id}")))?;
+
+    if let Some(parent_id) = parent_id {
+        if parent_id == id {
             return Err(AppError::InvalidInput(
                 "chapter cannot be its own parent".into(),
             ));
         }
+
+        let parent_project_id: Option<String> =
+            sqlx::query_scalar("SELECT project_id FROM chapters WHERE id = ?")
+                .bind(parent_id)
+                .fetch_optional(pool)
+                .await?;
+        let parent_project_id =
+            parent_project_id.ok_or_else(|| AppError::NotFound(format!("chapter {parent_id}")))?;
+        if parent_project_id != project_id {
+            return Err(AppError::InvalidInput(
+                "chapter parent must belong to the same project".into(),
+            ));
+        }
+
+        let would_create_cycle: i64 = sqlx::query_scalar(
+            "WITH RECURSIVE descendants(id) AS (
+                SELECT id FROM chapters WHERE parent_id = ?
+                UNION ALL
+                SELECT c.id FROM chapters c
+                JOIN descendants d ON c.parent_id = d.id
+             )
+             SELECT EXISTS(SELECT 1 FROM descendants WHERE id = ?)",
+        )
+        .bind(id)
+        .bind(parent_id)
+        .fetch_one(pool)
+        .await?;
+        if would_create_cycle != 0 {
+            return Err(AppError::InvalidInput(
+                "chapter cannot be moved under its own descendant".into(),
+            ));
+        }
     }
 
-    let result = sqlx::query(
-        "UPDATE chapters SET parent_id = ?, sort = ?, updated_at = ? WHERE id = ?",
-    )
-    .bind(parent_id)
-    .bind(sort)
-    .bind(now_ms())
-    .bind(id)
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("UPDATE chapters SET parent_id = ?, sort = ?, updated_at = ? WHERE id = ?")
+            .bind(parent_id)
+            .bind(sort)
+            .bind(now_ms())
+            .bind(id)
+            .execute(pool)
+            .await?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound(format!("chapter {id}")));

@@ -1,5 +1,6 @@
-import { Minimize2 } from "lucide-react";
+import { Focus, Minimize2 } from "lucide-react";
 import { Outlet, useMatch } from "react-router";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { EditorPanel } from "@/components/workspace/EditorPanel";
@@ -69,16 +70,22 @@ export function Workspace() {
       {!focusMode && <Footer />}
 
       {focusMode && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="fixed top-3 right-3 gap-1 shadow-md"
-          onClick={toggleFocus}
-          title="退出专注模式 (F11)"
-        >
-          <Minimize2 className="h-3.5 w-3.5" />
-          退出专注
-        </Button>
+        <div className="fixed top-3 right-3 flex items-center gap-2">
+          <Badge variant="secondary" className="gap-1 shadow-md">
+            <Focus className="h-3.5 w-3.5" />
+            专注模式
+          </Badge>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="gap-1 shadow-md"
+            onClick={toggleFocus}
+            title="退出专注模式 (F11)"
+          >
+            <Minimize2 className="h-3.5 w-3.5" />
+            退出
+          </Button>
+        </div>
       )}
     </div>
   );

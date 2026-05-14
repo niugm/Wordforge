@@ -7,7 +7,7 @@
 │                     Wordforge Desktop (Tauri 2)                  │
 │                                                                  │
 │  ┌────────────────── WebView (Frontend) ──────────────────┐      │
-│  │  React 18 + TS + Vite                                  │      │
+│  │  React 19 + TS + Vite                                  │      │
 │  │                                                        │      │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │      │
 │  │  │  Pages   │  │  Stores  │  │ Services │              │      │
@@ -78,7 +78,7 @@ Tauri 2 仍是双进程：
 
 ```
 App 启动
-  → Rust 初始化 db pool（如不存在则创建并跑 migrations）
+  → Rust 初始化 db pool（如不存在则创建并跑 sqlx migrations）
   → 读取 settings(theme, last_project_id)
   → 前端 mount，invoke("list_projects")
   → 显示 Workspace 或 Welcome

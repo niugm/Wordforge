@@ -41,6 +41,7 @@ export function useUpdateChapterContent(projectId: string) {
   return useMutation({
     mutationFn: chaptersRepo.updateContent,
     onSuccess: (_, vars) => {
+      qc.setQueryData(["chapter-content", vars.id], vars.contentJson);
       qc.setQueryData<Chapter[]>(chaptersKey(projectId), (prev) =>
         prev?.map((c) =>
           c.id === vars.id ? { ...c, wordCount: vars.wordCount, updatedAt: Date.now() } : c,

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, Build, Clippy
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: wordforge/pnpm-lock.yaml
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        working-directory: wordforge
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint frontend
+        working-directory: wordforge
+        run: pnpm lint
+
+      - name: Build frontend
+        working-directory: wordforge
+        run: pnpm build
+
+      - name: Check Rust formatting
+        working-directory: wordforge/src-tauri
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: wordforge/src-tauri
+        run: cargo clippy --all-targets -- -D warnings

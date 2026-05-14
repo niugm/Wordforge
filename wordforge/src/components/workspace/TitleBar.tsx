@@ -30,7 +30,7 @@ export function TitleBar() {
       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleLeft}>
         <Menu className="h-4 w-4" />
       </Button>
-      <Separator orientation="vertical" className="h-5" />
+      <Separator orientation="vertical" className="h-5 self-center" />
       <nav className="flex min-w-0 items-center gap-1 text-sm">
         <span className="font-medium">Wordforge</span>
         <span className="text-muted-foreground">/</span>

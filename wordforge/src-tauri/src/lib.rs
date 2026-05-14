@@ -18,8 +18,8 @@ pub fn run() {
                 .init();
 
             let app_data_dir = app.path().app_data_dir()?;
-            let pool = tauri::async_runtime::block_on(db::init_pool(&app_data_dir))
-                .map_err(|e| {
+            let pool =
+                tauri::async_runtime::block_on(db::init_pool(&app_data_dir)).map_err(|e| {
                     error!(error = %e, "failed to initialize database pool");
                     e
                 })?;
@@ -43,6 +43,16 @@ pub fn run() {
             commands::chapters::move_chapter,
             commands::chapters::reorder_chapters,
             commands::chapters::delete_chapter,
+            commands::characters::list_characters,
+            commands::characters::create_character,
+            commands::characters::update_character,
+            commands::characters::delete_character,
+            commands::outlines::list_outlines,
+            commands::outlines::create_outline,
+            commands::outlines::update_outline,
+            commands::outlines::move_outline,
+            commands::outlines::reorder_outlines,
+            commands::outlines::delete_outline,
             commands::sessions::start_session,
             commands::sessions::end_session,
             commands::sessions::get_writing_stats,
