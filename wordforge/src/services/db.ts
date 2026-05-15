@@ -48,6 +48,13 @@ export const chaptersRepo = {
   updateContent: (input: { id: string; contentJson: string; wordCount: number }) =>
     invoke<void>("update_chapter_content", input),
 
+  createRevision: (input: {
+    chapterId: string;
+    contentJson: string;
+    wordCountDelta: number;
+    source: "manual" | "ai_polish" | "review";
+  }) => invoke<void>("create_chapter_revision", input),
+
   create: (input: { projectId: string; parentId?: string | null; title: string }) =>
     invoke<Chapter>("create_chapter", input),
 

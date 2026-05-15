@@ -33,10 +33,10 @@
 
 ## 3.2 包管理
 
-**pnpm** ——  项目应用位于 `wordforge/`，依赖由 `pnpm-lock.yaml` 锁定；后续可补 `packageManager` 字段锁定 pnpm 主版本。
+**pnpm** ——  项目应用位于 `wordforge/`，依赖由 `pnpm-lock.yaml` 锁定；`packageManager` 锁定 pnpm 11。
 
 ```json
-{ "packageManager": "pnpm@9.x" }
+{ "packageManager": "pnpm@11.1.2" }
 ```
 
 理由：

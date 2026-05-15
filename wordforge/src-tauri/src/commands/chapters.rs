@@ -41,6 +41,24 @@ pub async fn update_chapter_content(
 }
 
 #[tauri::command]
+pub async fn create_chapter_revision(
+    pool: State<'_, SqlitePool>,
+    chapter_id: String,
+    content_json: String,
+    word_count_delta: i64,
+    source: String,
+) -> AppResult<()> {
+    chapters::create_revision(
+        pool.inner(),
+        &chapter_id,
+        &content_json,
+        word_count_delta,
+        &source,
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn create_chapter(
     pool: State<'_, SqlitePool>,
     project_id: String,

@@ -4,8 +4,10 @@ import {
   Clipboard,
   Copy,
   FileEdit,
+  FileInput,
   Loader2,
   PenLine,
+  Replace,
   Scissors,
   Sparkles,
   Wand2,
@@ -16,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAiPolish } from "@/hooks/useAi";
 import { useAiCredentials } from "@/hooks/useSettings";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/store/useUIStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import type { AiPolishKind, AiProvider } from "@/types/db";
 
@@ -63,10 +66,13 @@ export function AiAssistant() {
   const credentials = useAiCredentials();
   const polish = useAiPolish();
   const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
+  const aiEditorContext = useUIStore((state) => state.aiEditorContext);
+  const requestAiApply = useUIStore((state) => state.requestAiApply);
   const [provider, setProvider] = useState<AiProvider>("openai");
   const [kind, setKind] = useState<AiPolishKind>("condense");
-  const [text, setText] = useState("");
+  const [manualText, setManualText] = useState("");
   const [instruction, setInstruction] = useState("");
+  const [detachedContextId, setDetachedContextId] = useState<number | null>(null);
 
   const activeCredential = credentials.data?.find((item) => item.provider === provider);
   const configuredProviders = useMemo(
@@ -75,7 +81,15 @@ export function AiAssistant() {
   );
   const selectedAction = ACTIONS.find((action) => action.kind === kind) ?? ACTIONS[0];
   const SelectedActionIcon = selectedAction.icon;
+  const usesEditorContext =
+    !!aiEditorContext && detachedContextId !== aiEditorContext.capturedAt;
+  const text = usesEditorContext ? aiEditorContext.text : manualText;
   const charCount = text.trim().length;
+  const canApplyToEditor =
+    !!polish.data?.resultText &&
+    !!aiEditorContext &&
+    usesEditorContext &&
+    text.trim() === aiEditorContext.text.trim();
   const disabledReason =
     !activeCredential?.hasApiKey
       ? "先在设置里配置 OpenAI 兼容密钥"
@@ -108,6 +122,21 @@ export function AiAssistant() {
     toast.success("已复制 AI 建议");
   }
 
+  function applyResult(mode: "replace" | "insertBelow") {
+    const result = polish.data?.resultText.trim();
+    if (!result || !aiEditorContext || !canApplyToEditor) {
+      toast.info("这条建议没有绑定到当前编辑器选区");
+      return;
+    }
+    requestAiApply({
+      chapterId: aiEditorContext.chapterId,
+      mode,
+      text: result,
+      from: aiEditorContext.from,
+      to: aiEditorContext.to,
+    });
+  }
+
   return (
     <div className="flex min-h-full flex-col gap-4 p-4 text-sm">
       <div className="space-y-1">
@@ -118,9 +147,21 @@ export function AiAssistant() {
           AI 精修
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
-          先粘贴选区或当前段落生成候选，确认后再复制回正文。
+          选中正文点 AI，或按 Ctrl/Cmd+J 送入当前段落；确认后再替换或插入正文。
         </p>
       </div>
+
+      {aiEditorContext && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2 font-medium text-primary">
+            <FileInput className="h-3.5 w-3.5" />
+            已绑定{aiEditorContext.source === "selection" ? "选区" : "当前段落"}
+          </div>
+          <p className="mt-1 text-muted-foreground">
+            应用结果会写入编辑器，并在替换前保存一条 AI 修订记录。
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <label className="text-xs font-medium text-muted-foreground">模型配置</label>
@@ -200,7 +241,10 @@ export function AiAssistant() {
         </div>
         <Textarea
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            setManualText(event.target.value);
+            if (aiEditorContext) setDetachedContextId(aiEditorContext.capturedAt);
+          }}
           placeholder="粘贴需要精修的一段正文..."
           className="min-h-40 resize-none text-sm leading-6"
         />
@@ -230,7 +274,19 @@ export function AiAssistant() {
           <div className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-sm leading-6">
             {polish.data.resultText}
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            {canApplyToEditor && (
+              <>
+                <Button variant="default" size="sm" onClick={() => applyResult("replace")}>
+                  <Replace className="h-3.5 w-3.5" />
+                  替换原文
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => applyResult("insertBelow")}>
+                  <FileInput className="h-3.5 w-3.5" />
+                  插入下方
+                </Button>
+              </>
+            )}
             <Button variant="outline" size="sm" onClick={copyResult}>
               <Copy className="h-3.5 w-3.5" />
               复制

@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已接入 AI 非流式段落精修 MVP）
+> 更新时间：2026-05-15（已接入 AI 精修编辑器选区 / 当前段落应用链路）
 
 ## 当前分支状态
 
@@ -22,32 +22,31 @@
 - `docs: prioritize AI work` 已提交。
 - `docs: design AI writing assistant` 已提交。
 - `a72d3a0 feat: store AI keys in system keyring` 已提交。
-- 当前工作树包含本轮 AI 精修 MVP 改动，待验证后提交。
+- 当前工作树包含本轮 AI 精修编辑器接入和 pnpm 11 升级改动，待提交。
 
 ## 本轮已完成
 
-### F6 AI 段落精修 MVP（非流式）
+### F6 AI 段落精修编辑器接入
 
-- 新增 Rust `ai` 模块：
-  - `LlmProvider` trait 雏形
-  - `OpenAiCompatibleProvider`
-  - Rust 侧提示词模板
-- 新增 `reqwest` 和 `async-trait` 依赖。
-- 新增 `ai_polish` IPC：
-  - 支持 `condense` / `expand` / `describe` / `tone` / `free`
-  - OpenAI-compatible provider 使用 `/chat/completions` 非流式请求
-  - 默认 base URL 为 `https://api.openai.com/v1`
-  - 未配置模型时默认 `gpt-4.1-mini`
-  - 后端限制输入最多 5000 字
-- AI 请求从 Rust 侧读取 keyring 密钥，前端仍只知道 `hasApiKey`。
-- 当前项目 ID 可用时，精修输入与模型结果写入 `ai_messages.scope = 'polish'`。
-- 右侧 AI 面板从占位状态改为可用手动入口：
-  - provider 选择
-  - 凝练 / 扩写 / 描写 / 语气 / 自由指令
-  - 原文输入字数限制
-  - 结果卡片
-  - 复制 / 重试
-- 暂未做编辑器选区自动带入、替换/插入正文、diff 对照和 streaming。
+- 编辑器 BubbleMenu 新增 `AI` 按钮，可把当前选区送入右侧 AI 面板。
+- 编辑器聚焦时支持 Ctrl/Cmd+J，把当前段落送入右侧 AI 面板。
+- 选区 / 当前段落超过 5000 字会阻止送入并提示分段。
+- 右侧栏会自动展开并切到 AI Tab。
+- AI 面板接收编辑器上下文后自动填入原文，并标记来源为选区或当前段落。
+- AI 结果卡新增：
+  - `替换原文`
+  - `插入下方`
+  - `复制`
+  - `重试`
+- `替换原文` / `插入下方` 通过 TipTap 修改正文，继续走现有自动保存、字数统计和 FTS 更新链路。
+- 应用 AI 结果前新增 `create_chapter_revision` IPC，写入 `revisions.source = 'ai_polish'`，保存修改前的章节 JSON。
+- 仍未做 diff 对照、streaming 和选区 popover 动作菜单。
+
+### 依赖与包管理
+
+- 项目升级到 `pnpm@11.1.2`，`package.json` 新增 `packageManager`。
+- TipTap 相关直接依赖统一固定到 `3.23.4`，修复 `@tiptap/core` 3.22/3.23 混装导致的 TypeScript 构建失败。
+- 新增 `pnpm-workspace.yaml`，允许 pnpm 11 执行 `esbuild` / `msw` 构建脚本。
 
 ### F12 设置完善
 
@@ -188,6 +187,10 @@
 - `wordforge/src/components/workspace/LeftSidebar.tsx`
 - `wordforge/src/components/workspace/RightSidebar.tsx`
 - `wordforge/src/components/workspace/panels/AiAssistant.tsx`
+- `wordforge/src/components/workspace/EditorPanel.tsx`
+- `wordforge/package.json`
+- `wordforge/pnpm-lock.yaml`
+- `wordforge/pnpm-workspace.yaml`
 - `wordforge/src/components/workspace/panels/ChapterTree.tsx`
 - `wordforge/src/components/shell/CommandPalette.tsx`
 - `wordforge/src/components/shell/SearchDialog.tsx`
@@ -199,19 +202,19 @@
 
 ## 已验证
 
-- `pnpm build` 通过。
-- `pnpm lint` 通过，但仍有既有 shadcn Fast Refresh warning：
+- `corepack pnpm@11.1.2 build` 通过。
+- `corepack pnpm@11.1.2 lint` 通过，但仍有既有 shadcn Fast Refresh warning：
   - `src/components/ui/badge.tsx`
   - `src/components/ui/button.tsx`
   - `src/components/ui/tabs.tsx`
-- `cargo check` 通过。
 - `cargo clippy --all-targets -- -D warnings` 通过。
-- `pnpm tauri dev` 已成功启动，Vite `http://localhost:1420` 返回 200。
 
 ## 注意事项
 
 - AI Key 已接入 keyring；AI 精修调用从 Rust 侧读取系统凭据库，不从前端读取明文。
-- 右侧 AI 面板现在是手动粘贴文本的 MVP；下一步再和 TipTap 选区/当前段落打通。
+- 右侧 AI 面板已和 TipTap 选区 / 当前段落打通，但仍保留手动输入。
+- AI 替换 / 插入会通过 TipTap 修改正文，当前依赖现有自动保存链路落库。
+- pnpm 已升级到 11；后续命令建议通过 `corepack pnpm@11.1.2 ...` 或启用 corepack 后直接 `pnpm ...` 执行。
 - Anthropic/Gemini 暂只有配置入口，没有真实调用。
 - 导出已接入 `tauri-plugin-dialog` 做目录选择；未选择时仍写入应用数据目录。
 - Docx 导出仍未实现。
@@ -219,6 +222,6 @@
 
 ## 建议下一步
 
-1. 把 TipTap 选区 / 当前段落自动送入右侧 AI 面板。
-2. 实现 `替换原文` / `插入下方`，并在替换前写入 `revisions.source = 'ai_polish'`。
-3. 增加结果对照 / diff，再接 streaming。
+1. 增加 AI 结果原文 / 建议对照与 diff。
+2. 给 BubbleMenu 的 AI 入口补 popover 动作菜单，减少去右侧栏选择动作的步骤。
+3. 接 streaming，并补中断 / 继续生成。

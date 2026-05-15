@@ -56,6 +56,13 @@ export function useUpdateChapterContent(projectId: string) {
   });
 }
 
+export function useCreateChapterRevision() {
+  return useMutation({
+    mutationFn: chaptersRepo.createRevision,
+    onError: (e) => toast.error(`修订记录失败：${errMsg(e)}`),
+  });
+}
+
 export function useCreateChapter(projectId: string) {
   const qc = useQueryClient();
   return useMutation({

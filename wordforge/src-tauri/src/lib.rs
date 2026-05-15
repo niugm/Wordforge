@@ -53,6 +53,7 @@ pub fn run() {
             commands::chapters::get_chapter,
             commands::chapters::get_chapter_content,
             commands::chapters::update_chapter_content,
+            commands::chapters::create_chapter_revision,
             commands::chapters::create_chapter,
             commands::chapters::duplicate_chapter,
             commands::chapters::rename_chapter,

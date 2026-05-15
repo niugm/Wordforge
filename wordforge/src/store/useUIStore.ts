@@ -17,6 +17,26 @@ export type LiveScopeWords = {
   words: number;
 };
 
+export type AiEditorContext = {
+  chapterId: string;
+  source: "selection" | "paragraph";
+  text: string;
+  from: number;
+  to: number;
+  capturedAt: number;
+};
+
+export type AiApplyMode = "replace" | "insertBelow";
+
+export type AiApplyRequest = {
+  id: number;
+  chapterId: string;
+  mode: AiApplyMode;
+  text: string;
+  from: number;
+  to: number;
+};
+
 const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
   fontFamily: "sans",
   fontSize: 15,
@@ -35,6 +55,9 @@ type UIState = {
   liveWordCount: number | null;
   liveScopeWords: LiveScopeWords | null;
   liveSessionWords: number;
+  aiPanelTab: "ai" | "notes" | "history";
+  aiEditorContext: AiEditorContext | null;
+  aiApplyRequest: AiApplyRequest | null;
 
   setTheme: (theme: Theme) => void;
   setEditorPreferences: (prefs: Partial<EditorPreferences>) => void;
@@ -50,6 +73,10 @@ type UIState = {
   setLiveWordCount: (n: number | null) => void;
   setLiveScopeWords: (value: LiveScopeWords | null) => void;
   setLiveSessionWords: (n: number) => void;
+  setAiPanelTab: (tab: UIState["aiPanelTab"]) => void;
+  setAiEditorContext: (context: AiEditorContext | null) => void;
+  requestAiApply: (request: Omit<AiApplyRequest, "id">) => void;
+  clearAiApplyRequest: (id: number) => void;
 };
 
 export const useUIStore = create<UIState>()(
@@ -65,6 +92,9 @@ export const useUIStore = create<UIState>()(
       liveWordCount: null,
       liveScopeWords: null,
       liveSessionWords: 0,
+      aiPanelTab: "ai",
+      aiEditorContext: null,
+      aiApplyRequest: null,
 
       setTheme: (theme) => set({ theme }),
       setEditorPreferences: (prefs) =>
@@ -81,6 +111,14 @@ export const useUIStore = create<UIState>()(
       setLiveWordCount: (n) => set({ liveWordCount: n }),
       setLiveScopeWords: (value) => set({ liveScopeWords: value }),
       setLiveSessionWords: (n) => set({ liveSessionWords: Math.max(0, n) }),
+      setAiPanelTab: (tab) => set({ aiPanelTab: tab }),
+      setAiEditorContext: (context) => set({ aiEditorContext: context, aiPanelTab: "ai" }),
+      requestAiApply: (request) =>
+        set({ aiApplyRequest: { ...request, id: Date.now() }, aiPanelTab: "ai" }),
+      clearAiApplyRequest: (id) =>
+        set((state) => ({
+          aiApplyRequest: state.aiApplyRequest?.id === id ? null : state.aiApplyRequest,
+        })),
     }),
     {
       name: "wordforge-ui",

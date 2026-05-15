@@ -5,19 +5,36 @@ import { Underline } from "@tiptap/extension-underline";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { AlertCircle, Bold, Check, Italic, Loader2, Strikethrough, Underline as UnderlineIcon } from "lucide-react";
+import {
+  AlertCircle,
+  Bold,
+  Check,
+  Italic,
+  Loader2,
+  Sparkles,
+  Strikethrough,
+  Underline as UnderlineIcon,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditorToolbar } from "@/components/workspace/EditorToolbar";
-import { useChapter, useChapterContent, useUpdateChapterContent } from "@/hooks/useChapters";
+import {
+  useChapter,
+  useChapterContent,
+  useCreateChapterRevision,
+  useUpdateChapterContent,
+} from "@/hooks/useChapters";
 import { useEndSession, useStartSession } from "@/hooks/useSessions";
 import { countWritingText, WORD_COUNT_MODE_LABELS } from "@/lib/wordCount";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/useUIStore";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import type { Chapter, ChapterStatus } from "@/types/db";
 
 const AUTOSAVE_MS = 500;
 const IDLE_SESSION_END_MS = 30_000;
+const MAX_AI_TEXT_CHARS = 5000;
 
 const STATUS_META: Record<
   ChapterStatus,
@@ -104,15 +121,45 @@ function getCurrentScopeWords(
   return { label: "本段" as const, words: countWritingText($from.parent.textContent, mode) };
 }
 
+function getCurrentAiContext(editor: Editor, chapterId: string) {
+  const { from, to, empty, $from } = editor.state.selection;
+  if (!empty) {
+    return {
+      chapterId,
+      source: "selection" as const,
+      text: editor.state.doc.textBetween(from, to, "\n").trim(),
+      from,
+      to,
+      capturedAt: Date.now(),
+    };
+  }
+
+  const paragraphFrom = $from.start();
+  const paragraphTo = $from.end();
+  return {
+    chapterId,
+    source: "paragraph" as const,
+    text: $from.parent.textContent.trim(),
+    from: paragraphFrom,
+    to: paragraphTo,
+    capturedAt: Date.now(),
+  };
+}
+
 type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
 
 function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialContent: string }) {
   const update = useUpdateChapterContent(chapter.projectId);
+  const createRevision = useCreateChapterRevision();
   const startSession = useStartSession();
   const endSession = useEndSession(chapter.projectId);
   const setLiveWordCount = useUIStore((s) => s.setLiveWordCount);
   const setLiveScopeWords = useUIStore((s) => s.setLiveScopeWords);
   const setLiveSessionWords = useUIStore((s) => s.setLiveSessionWords);
+  const setAiEditorContext = useUIStore((s) => s.setAiEditorContext);
+  const aiApplyRequest = useUIStore((s) => s.aiApplyRequest);
+  const clearAiApplyRequest = useUIStore((s) => s.clearAiApplyRequest);
+  const setRightCollapsed = useWorkspaceStore((s) => s.setRightCollapsed);
   const editorPreferences = useUIStore((s) => s.editorPreferences);
   const wordCountMode = useUIStore((s) => s.wordCountMode);
   const focusMode = useUIStore((s) => s.focusMode);
@@ -124,6 +171,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartWordsRef = useRef<number>(chapter.wordCount);
   const currentWordsRef = useRef<number>(chapter.wordCount);
+  const processedAiApplyIdRef = useRef<number | null>(null);
 
   function saveNow(editorInstance: Editor | null) {
     if (!editorInstance) return;
@@ -179,6 +227,22 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       endWritingSession();
       idleTimer.current = null;
     }, IDLE_SESSION_END_MS);
+  }
+
+  function sendScopeToAi(editorInstance: Editor | null) {
+    if (!editorInstance) return;
+    const context = getCurrentAiContext(editorInstance, chapter.id);
+    if (!context.text) {
+      toast.info("当前段落没有可精修的正文");
+      return;
+    }
+    if (context.text.length > MAX_AI_TEXT_CHARS) {
+      toast.info("选区较长，建议按段落分批处理");
+      return;
+    }
+    setAiEditorContext(context);
+    setRightCollapsed(false);
+    toast.success(context.source === "selection" ? "已送入 AI 面板" : "已送入当前段落");
   }
 
   useEffect(() => {
@@ -242,6 +306,81 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       editor.off("transaction", updateScopeWords);
     };
   }, [editor, setLiveScopeWords, wordCountMode]);
+
+  useEffect(() => {
+    if (
+      !editor ||
+      !aiApplyRequest ||
+      aiApplyRequest.chapterId !== chapter.id ||
+      processedAiApplyIdRef.current === aiApplyRequest.id
+    ) {
+      return;
+    }
+    processedAiApplyIdRef.current = aiApplyRequest.id;
+    const request = aiApplyRequest;
+    const beforeJson = JSON.stringify(editor.getJSON());
+
+    createRevision.mutate(
+      {
+        chapterId: chapter.id,
+        contentJson: beforeJson,
+        wordCountDelta: 0,
+        source: "ai_polish",
+      },
+      {
+        onSuccess: () => {
+          editor.chain().focus().setTextSelection({ from: request.from, to: request.to }).run();
+          if (request.mode === "replace") {
+            editor.chain().focus().insertContent(request.text).run();
+          } else {
+            editor
+              .chain()
+              .focus()
+              .setTextSelection(request.to)
+              .insertContent({
+                type: "paragraph",
+                content: [{ type: "text", text: request.text }],
+              })
+              .run();
+          }
+
+          const afterWords = getEditorWordCount(editor, wordCountMode);
+          currentWordsRef.current = afterWords;
+          setWordCount(afterWords);
+          setLiveWordCount(afterWords);
+          setLiveScopeWords(getCurrentScopeWords(editor, wordCountMode));
+          setLiveSessionWords(afterWords - sessionStartWordsRef.current);
+          toast.success(request.mode === "replace" ? "已替换原文" : "已插入下方");
+        },
+        onSettled: () => clearAiApplyRequest(request.id),
+      },
+    );
+  }, [
+    aiApplyRequest,
+    chapter.id,
+    clearAiApplyRequest,
+    createRevision,
+    editor,
+    setLiveScopeWords,
+    setLiveSessionWords,
+    setLiveWordCount,
+    wordCountMode,
+  ]);
+
+  useEffect(() => {
+    if (!editor) return;
+    function onKey(event: KeyboardEvent) {
+      const mod = /Mac|iPhone|iPad/i.test(navigator.platform) ? event.metaKey : event.ctrlKey;
+      if (mod && event.key.toLowerCase() === "j") {
+        event.preventDefault();
+        sendScopeToAi(editor);
+      }
+    }
+    const root = editor.view.dom;
+    root.addEventListener("keydown", onKey);
+    return () => root.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
@@ -333,6 +472,10 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
               onClick={() => editor.chain().focus().toggleStrike().run()}
             >
               <Strikethrough className="h-3.5 w-3.5" />
+            </BubbleBtn>
+            <span className="mx-0.5 h-5 w-px bg-border" />
+            <BubbleBtn active={false} title="送入 AI 精修" onClick={() => sendScopeToAi(editor)}>
+              <Sparkles className="h-3.5 w-3.5" />
             </BubbleBtn>
           </BubbleMenu>
         )}

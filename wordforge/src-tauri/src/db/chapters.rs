@@ -115,6 +115,43 @@ pub async fn update_content(
     Ok(())
 }
 
+pub async fn create_revision(
+    pool: &SqlitePool,
+    chapter_id: &str,
+    content_json: &str,
+    word_count_delta: i64,
+    source: &str,
+) -> AppResult<()> {
+    if !matches!(source, "manual" | "ai_polish" | "review") {
+        return Err(AppError::InvalidInput(format!(
+            "source must be one of manual, ai_polish, review, got {source}"
+        )));
+    }
+
+    let exists: Option<i64> = sqlx::query_scalar("SELECT 1 FROM chapters WHERE id = ?")
+        .bind(chapter_id)
+        .fetch_optional(pool)
+        .await?;
+    if exists.is_none() {
+        return Err(AppError::NotFound(format!("chapter {chapter_id}")));
+    }
+
+    sqlx::query(
+        "INSERT INTO revisions
+            (id, chapter_id, content_json, word_count_delta, source, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(Ulid::new().to_string())
+    .bind(chapter_id)
+    .bind(content_json)
+    .bind(word_count_delta)
+    .bind(source)
+    .bind(now_ms())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 pub async fn list_by_project(pool: &SqlitePool, project_id: &str) -> AppResult<Vec<Chapter>> {
     let rows = sqlx::query_as::<_, Chapter>(
         "SELECT id, project_id, parent_id, sort, title, summary,

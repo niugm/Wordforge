@@ -5,11 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AiAssistant } from "@/components/workspace/panels/AiAssistant";
 import { AnnotationList } from "@/components/workspace/panels/AnnotationList";
 import { RevisionList } from "@/components/workspace/panels/RevisionList";
+import { useUIStore } from "@/store/useUIStore";
 
 export function RightSidebar() {
+  const aiPanelTab = useUIStore((s) => s.aiPanelTab);
+  const setAiPanelTab = useUIStore((s) => s.setAiPanelTab);
+
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <Tabs defaultValue="ai" className="flex-1 overflow-hidden">
+      <Tabs
+        value={aiPanelTab}
+        onValueChange={(value) => setAiPanelTab(value as typeof aiPanelTab)}
+        className="flex-1 overflow-hidden"
+      >
         <TabsList className="m-2 grid grid-cols-3">
           <TabsTrigger value="ai" className="min-w-0 px-2">
             <IconLabel icon={Sparkles}>AI</IconLabel>
