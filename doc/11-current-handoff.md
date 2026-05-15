@@ -38,9 +38,10 @@
   - `插入下方`
   - `复制`
   - `重试`
+- AI 结果卡新增 `对照 / 仅建议` 切换；对照模式显示原文 / AI 建议双栏，并高亮首尾共同文本之间的变动区域。
 - `替换原文` / `插入下方` 通过 TipTap 修改正文，继续走现有自动保存、字数统计和 FTS 更新链路。
 - 应用 AI 结果前新增 `create_chapter_revision` IPC，写入 `revisions.source = 'ai_polish'`，保存修改前的章节 JSON。
-- 仍未做 diff 对照、streaming 和选区 popover 动作菜单。
+- 仍未做 streaming 和选区 popover 动作菜单。
 
 ### 依赖与包管理
 
@@ -222,6 +223,6 @@
 
 ## 建议下一步
 
-1. 增加 AI 结果原文 / 建议对照与 diff。
-2. 给 BubbleMenu 的 AI 入口补 popover 动作菜单，减少去右侧栏选择动作的步骤。
-3. 接 streaming，并补中断 / 继续生成。
+1. 给 BubbleMenu 的 AI 入口补 popover 动作菜单，减少去右侧栏选择动作的步骤。
+2. 接 streaming，并补中断 / 继续生成。
+3. 后续可把当前轻量首尾 diff 替换为更精细的词级 diff。

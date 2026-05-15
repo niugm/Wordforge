@@ -73,6 +73,7 @@ export function AiAssistant() {
   const [manualText, setManualText] = useState("");
   const [instruction, setInstruction] = useState("");
   const [detachedContextId, setDetachedContextId] = useState<number | null>(null);
+  const [resultView, setResultView] = useState<"compare" | "result">("compare");
 
   const activeCredential = credentials.data?.find((item) => item.provider === provider);
   const configuredProviders = useMemo(
@@ -271,9 +272,39 @@ export function AiAssistant() {
               {providerLabel(polish.data.provider)} · {polish.data.model}
             </span>
           </div>
-          <div className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-sm leading-6">
-            {polish.data.resultText}
+          <div className="flex rounded-md border bg-muted/30 p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setResultView("compare")}
+              className={cn(
+                "flex-1 rounded-sm px-2 py-1.5 transition-colors",
+                resultView === "compare"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              对照
+            </button>
+            <button
+              type="button"
+              onClick={() => setResultView("result")}
+              className={cn(
+                "flex-1 rounded-sm px-2 py-1.5 transition-colors",
+                resultView === "result"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              仅建议
+            </button>
           </div>
+          {resultView === "compare" ? (
+            <DiffCompare original={polish.data.originalText} result={polish.data.resultText} />
+          ) : (
+            <div className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-sm leading-6">
+              {polish.data.resultText}
+            </div>
+          )}
           <div className="flex flex-wrap justify-end gap-2">
             {canApplyToEditor && (
               <>
@@ -300,6 +331,87 @@ export function AiAssistant() {
       )}
     </div>
   );
+}
+
+function DiffCompare({ original, result }: { original: string; result: string }) {
+  const diff = getSimpleTextDiff(original, result);
+
+  return (
+    <div className="grid gap-2 lg:grid-cols-2">
+      <DiffPane
+        title="原文"
+        unchangedBefore={diff.prefix}
+        changed={diff.originalChanged}
+        unchangedAfter={diff.suffix}
+        changedClassName="bg-destructive/10 text-destructive line-through decoration-destructive/70"
+        emptyLabel="无删减"
+      />
+      <DiffPane
+        title="AI 建议"
+        unchangedBefore={diff.prefix}
+        changed={diff.resultChanged}
+        unchangedAfter={diff.suffix}
+        changedClassName="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+        emptyLabel="无新增"
+      />
+    </div>
+  );
+}
+
+function DiffPane({
+  title,
+  unchangedBefore,
+  changed,
+  unchangedAfter,
+  changedClassName,
+  emptyLabel,
+}: {
+  title: string;
+  unchangedBefore: string;
+  changed: string;
+  unchangedAfter: string;
+  changedClassName: string;
+  emptyLabel: string;
+}) {
+  return (
+    <div className="min-h-28 rounded-md border bg-muted/30">
+      <div className="flex items-center justify-between border-b px-3 py-2">
+        <span className="text-xs font-medium">{title}</span>
+        <span className="text-[11px] text-muted-foreground">
+          {changed ? "高亮为变动部分" : emptyLabel}
+        </span>
+      </div>
+      <div className="max-h-80 overflow-auto whitespace-pre-wrap p-3 text-sm leading-6">
+        {unchangedBefore}
+        {changed && <span className={cn("rounded-sm px-0.5", changedClassName)}>{changed}</span>}
+        {unchangedAfter}
+      </div>
+    </div>
+  );
+}
+
+function getSimpleTextDiff(original: string, result: string) {
+  let prefixLength = 0;
+  const maxPrefix = Math.min(original.length, result.length);
+  while (prefixLength < maxPrefix && original[prefixLength] === result[prefixLength]) {
+    prefixLength += 1;
+  }
+
+  let suffixLength = 0;
+  const maxSuffix = maxPrefix - prefixLength;
+  while (
+    suffixLength < maxSuffix &&
+    original[original.length - 1 - suffixLength] === result[result.length - 1 - suffixLength]
+  ) {
+    suffixLength += 1;
+  }
+
+  return {
+    prefix: original.slice(0, prefixLength),
+    suffix: suffixLength > 0 ? original.slice(original.length - suffixLength) : "",
+    originalChanged: original.slice(prefixLength, original.length - suffixLength),
+    resultChanged: result.slice(prefixLength, result.length - suffixLength),
+  };
 }
 
 function providerLabel(provider: AiProvider) {
