@@ -4,9 +4,9 @@ use tauri::{Emitter, State, Window};
 use ulid::Ulid;
 
 use crate::ai::cancel::AiStreamCancels;
-use crate::ai::{self, AiPolishResult, LlmConfig, PolishKind};
+use crate::ai::{self, AiChapterReviewResult, AiPolishResult, LlmConfig, PolishKind};
 use crate::db::now_ms;
-use crate::db::settings;
+use crate::db::{chapters, settings};
 use crate::error::{AppError, AppResult};
 
 #[tauri::command]
@@ -136,6 +136,54 @@ pub fn cancel_ai_polish_stream(
     cancels.cancel(request_id)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiReviewChapterInput {
+    provider: String,
+    project_id: String,
+    chapter_id: String,
+}
+
+#[tauri::command]
+pub async fn ai_review_chapter(
+    pool: State<'_, SqlitePool>,
+    input: AiReviewChapterInput,
+) -> AppResult<AiChapterReviewResult> {
+    let project_id = input.project_id.trim().to_string();
+    let chapter_id = input.chapter_id.trim().to_string();
+    if project_id.is_empty() || chapter_id.is_empty() {
+        return Err(AppError::InvalidInput(
+            "projectId and chapterId are required".into(),
+        ));
+    }
+
+    let chapter = chapters::get_one(pool.inner(), &chapter_id).await?;
+    if chapter.project_id != project_id {
+        return Err(AppError::InvalidInput(
+            "chapter must belong to the current project".into(),
+        ));
+    }
+    let content_json = chapters::get_content(pool.inner(), &chapter_id).await?;
+    let chapter_text = chapters::extract_tiptap_text(&content_json);
+    let (credential, api_key) =
+        settings::load_ai_credential_with_secret(pool.inner(), input.provider).await?;
+    let result = ai::review_chapter(
+        LlmConfig {
+            provider: credential.provider,
+            api_key,
+            base_url: credential.base_url,
+            model: credential.model,
+        },
+        chapter.title,
+        chapter_text,
+    )
+    .await?;
+
+    save_review_messages(pool.inner(), &project_id, &chapter_id, &result).await?;
+
+    Ok(result)
+}
+
 fn build_stream_instruction(
     instruction: Option<String>,
     continue_from: Option<&str>,
@@ -185,6 +233,43 @@ async fn save_polish_messages(
     .bind(Ulid::new().to_string())
     .bind(project_id)
     .bind(&result.result_text)
+    .bind(now)
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+    Ok(())
+}
+
+async fn save_review_messages(
+    pool: &SqlitePool,
+    project_id: &str,
+    chapter_id: &str,
+    result: &AiChapterReviewResult,
+) -> AppResult<()> {
+    let content = serde_json::to_string(&result.issues)
+        .map_err(|error| AppError::InvalidInput(format!("failed to serialize review: {error}")))?;
+    let user_content = format!("review chapter: {chapter_id}");
+    let now = now_ms();
+    let mut tx = pool.begin().await?;
+    sqlx::query(
+        "INSERT INTO ai_messages (id, project_id, scope, role, content, tokens, created_at)
+         VALUES (?, ?, 'review', 'user', ?, NULL, ?)",
+    )
+    .bind(Ulid::new().to_string())
+    .bind(project_id)
+    .bind(user_content)
+    .bind(now)
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query(
+        "INSERT INTO ai_messages (id, project_id, scope, role, content, tokens, created_at)
+         VALUES (?, ?, 'review', 'assistant', ?, NULL, ?)",
+    )
+    .bind(Ulid::new().to_string())
+    .bind(project_id)
+    .bind(content)
     .bind(now)
     .execute(&mut *tx)
     .await?;

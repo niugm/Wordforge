@@ -39,6 +39,12 @@ export type AiApplyRequest = {
   to: number;
 };
 
+export type AiReviewLocateRequest = {
+  id: number;
+  chapterId: string;
+  quote: string;
+};
+
 const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
   fontFamily: "sans",
   fontSize: 15,
@@ -60,6 +66,7 @@ type UIState = {
   aiPanelTab: "ai" | "notes" | "history";
   aiEditorContext: AiEditorContext | null;
   aiApplyRequest: AiApplyRequest | null;
+  aiReviewLocateRequest: AiReviewLocateRequest | null;
 
   setTheme: (theme: Theme) => void;
   setEditorPreferences: (prefs: Partial<EditorPreferences>) => void;
@@ -79,6 +86,8 @@ type UIState = {
   setAiEditorContext: (context: AiEditorContext | null) => void;
   requestAiApply: (request: Omit<AiApplyRequest, "id">) => void;
   clearAiApplyRequest: (id: number) => void;
+  requestAiReviewLocate: (request: Omit<AiReviewLocateRequest, "id">) => void;
+  clearAiReviewLocateRequest: (id: number) => void;
 };
 
 export const useUIStore = create<UIState>()(
@@ -97,6 +106,7 @@ export const useUIStore = create<UIState>()(
       aiPanelTab: "ai",
       aiEditorContext: null,
       aiApplyRequest: null,
+      aiReviewLocateRequest: null,
 
       setTheme: (theme) => set({ theme }),
       setEditorPreferences: (prefs) =>
@@ -120,6 +130,13 @@ export const useUIStore = create<UIState>()(
       clearAiApplyRequest: (id) =>
         set((state) => ({
           aiApplyRequest: state.aiApplyRequest?.id === id ? null : state.aiApplyRequest,
+        })),
+      requestAiReviewLocate: (request) =>
+        set({ aiReviewLocateRequest: { ...request, id: Date.now() }, aiPanelTab: "ai" }),
+      clearAiReviewLocateRequest: (id) =>
+        set((state) => ({
+          aiReviewLocateRequest:
+            state.aiReviewLocateRequest?.id === id ? null : state.aiReviewLocateRequest,
         })),
     }),
     {

@@ -1,12 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  FolderOpen,
-  Pencil,
-  Plus,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronRight, FileText, FolderOpen, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -72,7 +71,11 @@ function collectDescendantIds(id: string, all: OutlineNode[]): Set<string> {
   return ids;
 }
 
-function buildFlat(parentId: string | null, available: OutlineNode[], depth: number): Array<{ node: OutlineNode; depth: number }> {
+function buildFlat(
+  parentId: string | null,
+  available: OutlineNode[],
+  depth: number,
+): Array<{ node: OutlineNode; depth: number }> {
   const children = available
     .filter((node) => (node.parentId ?? null) === parentId)
     .sort((a, b) => a.sort - b.sort || a.title.localeCompare(b.title));
@@ -85,7 +88,10 @@ export function OutlineTree() {
   const reorder = useReorderOutlines(projectId ?? "");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editTarget, setEditTarget] = useState<OutlineNode | null>(null);
-  const [createTarget, setCreateTarget] = useState<{ parentId: string | null; parentTitle: string | null } | null>(null);
+  const [createTarget, setCreateTarget] = useState<{
+    parentId: string | null;
+    parentTitle: string | null;
+  } | null>(null);
   const [moveTarget, setMoveTarget] = useState<OutlineNode | null>(null);
 
   const tree = useMemo(() => buildTree(outlines ?? []), [outlines]);
@@ -165,7 +171,9 @@ export function OutlineTree() {
             depth={0}
             expanded={expanded}
             onToggle={toggleExpand}
-            onAddChild={(target) => setCreateTarget({ parentId: target.id, parentTitle: target.title })}
+            onAddChild={(target) =>
+              setCreateTarget({ parentId: target.id, parentTitle: target.title })
+            }
             onEdit={setEditTarget}
             onMove={setMoveTarget}
             onMoveSibling={moveSibling}
@@ -240,7 +248,11 @@ function OutlineTreeNode({
             onClick={() => onToggle(node.id)}
             aria-label={isOpen ? "折叠" : "展开"}
           >
-            {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            {isOpen ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
           </button>
         ) : (
           <span className="h-4 w-4 shrink-0" />
@@ -260,19 +272,41 @@ function OutlineTreeNode({
           aria-label={`状态：${statusMeta.label}`}
         />
         <div className="flex shrink-0 items-center opacity-0 group-hover:opacity-100">
-          <Button size="icon" variant="ghost" className="h-6 w-6" title="新建子节点" onClick={() => onAddChild(node)}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            title="新建子节点"
+            onClick={() => onAddChild(node)}
+          >
             <Plus className="h-3.5 w-3.5" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-6 w-6" title="编辑" onClick={() => onEdit(node)}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            title="编辑"
+            onClick={() => onEdit(node)}
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
       <div className="ml-8 hidden gap-1 px-2 pb-1 group-hover:flex">
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onMoveSibling(node.id, "up")}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          onClick={() => onMoveSibling(node.id, "up")}
+        >
           上移
         </Button>
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onMoveSibling(node.id, "down")}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          onClick={() => onMoveSibling(node.id, "down")}
+        >
           下移
         </Button>
         <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onMove(node)}>
@@ -360,7 +394,13 @@ function OutlineDialog({
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>{node ? "编辑大纲节点" : parentTitle ? `新建「${parentTitle}」子节点` : "新建大纲节点"}</DialogTitle>
+            <DialogTitle>
+              {node
+                ? "编辑大纲节点"
+                : parentTitle
+                  ? `新建「${parentTitle}」子节点`
+                  : "新建大纲节点"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
@@ -376,18 +416,38 @@ function OutlineDialog({
               />
             </Field>
             <Field label="状态" htmlFor="outline-status">
-              <select
-                id="outline-status"
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                value={input.status}
-                onChange={(e) => setInput((prev) => ({ ...prev, status: e.target.value as OutlineStatus }))}
-              >
-                {(Object.keys(STATUS_META) as OutlineStatus[]).map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_META[status].label}
-                  </option>
-                ))}
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    id="outline-status"
+                    type="button"
+                    className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-2.5 text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn("h-2 w-2 rounded-full", STATUS_META[input.status].dotClass)}
+                      />
+                      {STATUS_META[input.status].label}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {(Object.keys(STATUS_META) as OutlineStatus[]).map((status) => (
+                    <DropdownMenuItem
+                      key={status}
+                      onSelect={() => setInput((prev) => ({ ...prev, status }))}
+                      className="gap-2"
+                    >
+                      <span className="flex h-4 w-4 items-center justify-center">
+                        {input.status === status && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                      <span className={cn("h-2 w-2 rounded-full", STATUS_META[status].dotClass)} />
+                      {STATUS_META[status].label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </Field>
             <Field label="内容" htmlFor="outline-content">
               <Textarea
@@ -401,7 +461,12 @@ function OutlineDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
               取消
             </Button>
             <Button type="submit" disabled={isPending}>
@@ -486,7 +551,9 @@ function MoveOutlineDialog({
             </button>
           ))}
           {available.length === 0 && (
-            <p className="px-3 py-4 text-center text-xs text-muted-foreground">没有可选的目标位置</p>
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+              没有可选的目标位置
+            </p>
           )}
         </div>
 

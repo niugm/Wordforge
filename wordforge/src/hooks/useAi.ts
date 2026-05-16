@@ -38,3 +38,12 @@ export function useCancelAiPolishStream() {
     },
   });
 }
+
+export function useAiReviewChapter() {
+  return useMutation({
+    mutationFn: aiRepo.reviewChapter,
+    onError: (error) => {
+      toast.error(`AI 校审失败：${errMsg(error)}`);
+    },
+  });
+}

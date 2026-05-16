@@ -85,8 +85,13 @@ export function EditorPanel() {
 }
 
 function ChapterLoader({ chapterId }: { chapterId: string }) {
+  const setCurrentChapter = useWorkspaceStore((s) => s.setCurrentChapter);
   const chapter = useChapter(chapterId);
   const content = useChapterContent(chapterId);
+
+  useEffect(() => {
+    setCurrentChapter(chapterId);
+  }, [chapterId, setCurrentChapter]);
 
   if (chapter.error || content.error) {
     const err = chapter.error ?? content.error;
@@ -128,10 +133,7 @@ function getEditorWordCount(editor: Editor, mode: Parameters<typeof countWriting
   return countWritingText(editor.getText(), mode);
 }
 
-function getCurrentScopeWords(
-  editor: Editor,
-  mode: Parameters<typeof countWritingText>[1],
-) {
+function getCurrentScopeWords(editor: Editor, mode: Parameters<typeof countWritingText>[1]) {
   const { from, to, empty, $from } = editor.state.selection;
   if (!empty) {
     const text = editor.state.doc.textBetween(from, to, " ");
@@ -167,6 +169,44 @@ function getCurrentAiContext(editor: Editor, chapterId: string, preferredKind?: 
   };
 }
 
+function findTextRangeInDoc(editor: Editor, quote: string) {
+  const normalizedQuote = normalizeLocateText(quote);
+  if (!normalizedQuote) return null;
+
+  const normalizedDoc = normalizeEditorTextWithPositions(editor);
+  const start = normalizedDoc.text.indexOf(normalizedQuote);
+  if (start < 0) return null;
+
+  const end = start + normalizedQuote.length;
+  return {
+    from: normalizedDoc.positions[start].from,
+    to: normalizedDoc.positions[end - 1].to,
+  };
+}
+
+function normalizeLocateText(text: string) {
+  return text.replace(/\s+/gu, "");
+}
+
+function normalizeEditorTextWithPositions(editor: Editor) {
+  let text = "";
+  const positions: Array<{ from: number; to: number }> = [];
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText) return true;
+    let localOffset = 0;
+    for (const char of Array.from(node.text ?? "")) {
+      const from = pos + localOffset;
+      const to = from + char.length;
+      localOffset += char.length;
+      if (/\s/u.test(char)) continue;
+      text += char;
+      positions.push({ from, to });
+    }
+    return true;
+  });
+  return { text, positions };
+}
+
 type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
 
 function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialContent: string }) {
@@ -180,6 +220,8 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const setAiEditorContext = useUIStore((s) => s.setAiEditorContext);
   const aiApplyRequest = useUIStore((s) => s.aiApplyRequest);
   const clearAiApplyRequest = useUIStore((s) => s.clearAiApplyRequest);
+  const aiReviewLocateRequest = useUIStore((s) => s.aiReviewLocateRequest);
+  const clearAiReviewLocateRequest = useUIStore((s) => s.clearAiReviewLocateRequest);
   const setRightCollapsed = useWorkspaceStore((s) => s.setRightCollapsed);
   const editorPreferences = useUIStore((s) => s.editorPreferences);
   const wordCountMode = useUIStore((s) => s.wordCountMode);
@@ -193,6 +235,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const sessionStartWordsRef = useRef<number>(chapter.wordCount);
   const currentWordsRef = useRef<number>(chapter.wordCount);
   const processedAiApplyIdRef = useRef<number | null>(null);
+  const processedAiReviewLocateIdRef = useRef<number | null>(null);
 
   function saveNow(editorInstance: Editor | null) {
     if (!editorInstance) return;
@@ -288,8 +331,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
     autofocus: "end",
     editorProps: {
       attributes: {
-        class:
-          "ProseMirror mx-auto min-h-[60vh] px-8 py-8 focus:outline-none",
+        class: "ProseMirror mx-auto min-h-[60vh] px-8 py-8 focus:outline-none",
       },
     },
     onUpdate: ({ editor }) => {
@@ -387,6 +429,29 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
     setLiveWordCount,
     wordCountMode,
   ]);
+
+  useEffect(() => {
+    if (
+      !editor ||
+      !aiReviewLocateRequest ||
+      aiReviewLocateRequest.chapterId !== chapter.id ||
+      processedAiReviewLocateIdRef.current === aiReviewLocateRequest.id
+    ) {
+      return;
+    }
+    processedAiReviewLocateIdRef.current = aiReviewLocateRequest.id;
+    const request = aiReviewLocateRequest;
+    const range = findTextRangeInDoc(editor, request.quote);
+    if (!range) {
+      toast.info("未能在正文中定位这条建议");
+      clearAiReviewLocateRequest(request.id);
+      return;
+    }
+    editor.chain().focus().setTextSelection(range).run();
+    editor.commands.scrollIntoView();
+    toast.success("已定位到建议原文");
+    clearAiReviewLocateRequest(request.id);
+  }, [aiReviewLocateRequest, chapter.id, clearAiReviewLocateRequest, editor]);
 
   useEffect(() => {
     if (!editor) return;

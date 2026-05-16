@@ -33,7 +33,7 @@ fn validate_status(status: &str) -> AppResult<()> {
     }
 }
 
-fn extract_tiptap_text(raw: &str) -> String {
+pub(crate) fn extract_tiptap_text(raw: &str) -> String {
     let Ok(doc) = serde_json::from_str::<Value>(raw) else {
         return raw.to_string();
     };

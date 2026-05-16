@@ -1,6 +1,6 @@
 # 11 · 当前交接说明
 
-> 更新时间：2026-05-15（已接入 AI 精修编辑器选区 / 当前段落应用链路）
+> 更新时间：2026-05-16（已深化 AI 章节校审交互）
 
 ## 当前分支状态
 
@@ -22,7 +22,7 @@
 - `docs: prioritize AI work` 已提交。
 - `docs: design AI writing assistant` 已提交。
 - `a72d3a0 feat: store AI keys in system keyring` 已提交。
-- 当前工作树包含本轮 AI 精修编辑器接入和 pnpm 11 升级改动，待提交。
+- 当前工作树包含 AI 精修对照 diff 深化、F7 章节校审交互深化与文档更新，待提交。
 
 ## 本轮已完成
 
@@ -39,11 +39,41 @@
   - `插入下方`
   - `复制`
   - `重试`
-- AI 结果卡新增 `对照 / 仅建议` 切换；对照模式显示原文 / AI 建议双栏，并高亮首尾共同文本之间的变动区域。
+- AI 结果卡新增 `对照 / 仅建议` 切换；对照模式显示原文 / AI 建议双栏，并使用词 / 字符 token 分块高亮删改，避免整段中间区域被粗暴标红。
 - `替换原文` / `插入下方` 通过 TipTap 修改正文，继续走现有自动保存、字数统计和 FTS 更新链路。
 - 应用 AI 结果前新增 `create_chapter_revision` IPC，写入 `revisions.source = 'ai_polish'`，保存修改前的章节 JSON。
 - OpenAI-compatible provider 新增流式请求，右侧 AI 面板生成中实时显示增量文本，完成后切回对照结果。
 - 流式生成支持 `停止生成`；停止或网络中断后保留已生成部分，并提供 `继续生成`。
+
+### F7 AI 章节校审最小闭环
+
+- Rust AI 层新增 `review_chapter`，复用 `LlmProvider` 与 OpenAI-compatible provider。
+- 新增 `chapter_review_request` prompt，要求模型按逻辑 / 连贯 / 人物口吻 / 伏笔输出合法 JSON。
+- 新增 `ai_review_chapter` IPC：
+  - 校验当前章节属于当前作品。
+  - 读取章节 TipTap JSON 并提取纯文本。
+  - 限制章节正文 50000 字以内。
+  - 将校审结果写入 `ai_messages.scope = 'review'`。
+- AI 面板顶部新增 `精修 / 校审` 模式切换。
+- 校审模式可对当前章节生成建议列表，显示：
+  - 问题类型标签
+  - 严重程度标签
+  - 位置描述
+  - 问题说明
+  - 修改建议
+- 每条校审建议支持复制。
+- `EditorPanel` 加载章节时同步 `currentChapterId`，保证右侧 AI 面板能识别当前章节。
+
+### F7 AI 章节校审交互深化
+
+- 校审 JSON schema 新增 `quote` 字段，要求模型返回可在章节正文中找到的原文短引文。
+- 每条校审建议新增定位按钮：
+  - 通过 `useUIStore.aiReviewLocateRequest` 通知编辑器。
+  - 编辑器按原文短引文在 ProseMirror 文本节点中查找。
+  - 定位成功后选中正文并滚动到视图内。
+- 校审结果支持按严重程度筛选：全部 / 高 / 中 / 低。
+- 每条校审建议支持忽略 / 恢复；面板可切换显示已忽略建议。
+- 校审建议卡显示原文短引文，便于作者判断定位依据。
 
 ### 依赖与包管理
 
@@ -168,6 +198,7 @@
 - `wordforge/src-tauri/src/ai/openai.rs`
 - `wordforge/src-tauri/src/ai/prompts.rs`
 - `wordforge/src-tauri/src/commands/ai.rs`
+- `wordforge/src-tauri/src/db/chapters.rs`
 - `wordforge/src-tauri/src/error.rs`
 - `wordforge/src-tauri/src/commands/settings.rs`
 - `wordforge/src-tauri/src/db/exports.rs`
@@ -184,12 +215,15 @@
 - `wordforge/src/hooks/useChapters.ts`
 - `wordforge/src/services/db.ts`
 - `wordforge/src/types/db.ts`
+- `wordforge/src/store/useUIStore.ts`
 - `wordforge/src/components/ui/icon-label.tsx`
 - `wordforge/src/components/workspace/TitleBar.tsx`
 - `wordforge/src/components/workspace/Footer.tsx`
 - `wordforge/src/components/workspace/LeftSidebar.tsx`
 - `wordforge/src/components/workspace/RightSidebar.tsx`
 - `wordforge/src/components/workspace/panels/AiAssistant.tsx`
+- `doc/11-current-handoff.md`
+- `doc/08-roadmap.md`
 - `wordforge/src/components/workspace/EditorPanel.tsx`
 - `wordforge/package.json`
 - `wordforge/pnpm-lock.yaml`
@@ -206,6 +240,7 @@
 ## 已验证
 
 - `corepack pnpm@11.1.2 build` 通过。
+- `cargo fmt --check` 通过。
 - `corepack pnpm@11.1.2 lint` 通过，但仍有既有 shadcn Fast Refresh warning：
   - `src/components/ui/badge.tsx`
   - `src/components/ui/button.tsx`
@@ -218,6 +253,8 @@
 - 右侧 AI 面板已和 TipTap 选区 / 当前段落打通，但仍保留手动输入。
 - AI 替换 / 插入会通过 TipTap 修改正文，当前依赖现有自动保存链路落库。
 - AI streaming 已接入增量显示、停止生成和继续生成。
+- AI 章节校审已接入当前章节全文发送、结构化 JSON 解析、建议卡片渲染、`ai_messages.scope = 'review'` 留痕、严重程度筛选、忽略 / 恢复和基于原文短引文定位。
+- 校审建议暂不支持“一键接受并修改正文”；忽略状态目前只保存在当前面板状态里，未持久化；校审暂未带入角色卡或大纲上下文。
 - pnpm 已升级到 11；后续命令建议通过 `corepack pnpm@11.1.2 ...` 或启用 corepack 后直接 `pnpm ...` 执行。
 - Anthropic/Gemini 暂只有配置入口，没有真实调用。
 - 导出已接入 `tauri-plugin-dialog` 做目录选择；未选择时仍写入应用数据目录。
@@ -226,6 +263,6 @@
 
 ## 建议下一步
 
-1. 后续可把当前轻量首尾 diff 替换为更精细的词级 diff。
-2. 接章节校审模式。
-3. 首次 GitHub Actions 实跑验证。
+1. 深化章节校审：接受建议并转为正文修改、持久化忽略状态、提升跨段落定位鲁棒性。
+2. 首次 GitHub Actions 实跑验证。
+3. 继续深化 AI 上下文包：可选角色卡 / 大纲节点带入。

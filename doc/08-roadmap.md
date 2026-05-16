@@ -19,7 +19,7 @@
 
 ---
 
-## 8.2 当前进度（截至 2026-05-15，工作树）
+## 8.2 当前进度（截至 2026-05-16，工作树）
 
 ### 已完成
 
@@ -37,7 +37,8 @@
 | **F10 基础搜索** | SearchDialog 已接入当前作品的章节标题/摘要、角色卡、大纲节点搜索；结果可跳转章节或切换左侧角色/大纲 Tab；前端结果显示命中片段并高亮关键词；章节正文接入 SQLite FTS5，保存时写入纯文本索引；结果按章节 / 正文 / 角色 / 大纲分组；分组标题、结果图标徽块、空状态与加载态已精修 |
 | **F11 命令面板** | CommandPalette 已接入真实数据；支持导航命令、设置/搜索操作、章节跳转、角色/大纲 Tab 切换；最近使用置顶并持久化最近 6 个项目；命令项已改为图标徽块 + 主副文本结构，增强导航/操作/章节/角色/大纲的可扫读性 |
 | **F12 设置** | SettingsDialog 已接入编辑器偏好；支持字体族、字号、行高、编辑区宽度，偏好持久化到 `wordforge-ui` 并实时应用到 TipTap 编辑器；字数计数模式持久化并应用到章节保存和会话增量；备份目录/自动备份开关写入 SQLite `settings` 表；AI Provider 配置支持 OpenAI 兼容 / Anthropic / Gemini，密钥只写不回显，前端仅显示配置状态；设置 Tab、分组标题、AI provider、备份开关、导出/字数选项卡片已完成语义图标和状态精修 |
-| **F6 AI 精修** | Rust 侧新增 `ai` 模块与 `LlmProvider` 抽象雏形；OpenAI-compatible provider 已支持 `/chat/completions` 非流式 / 流式请求；新增 `ai_polish` / `ai_polish_stream` / `cancel_ai_polish_stream` IPC，支持凝练 / 扩写 / 增强描写 / 调整语气 / 自由指令；右侧 AI 面板已从占位改为精修入口，支持流式输出、停止 / 继续生成、结果复制、重试、替换原文、插入下方和原文/建议轻量对照；编辑器选区 / 当前段落可通过 BubbleMenu `AI` 动作菜单或 Ctrl/Cmd+J 送入 AI 面板；超过 5000 字会阻止调用；当前项目可用时写入 `ai_messages.scope = 'polish'`；替换前写入 `revisions.source = 'ai_polish'` |
+| **F6 AI 精修** | Rust 侧新增 `ai` 模块与 `LlmProvider` 抽象雏形；OpenAI-compatible provider 已支持 `/chat/completions` 非流式 / 流式请求；新增 `ai_polish` / `ai_polish_stream` / `cancel_ai_polish_stream` IPC，支持凝练 / 扩写 / 增强描写 / 调整语气 / 自由指令；右侧 AI 面板已从占位改为精修入口，支持流式输出、停止 / 继续生成、结果复制、重试、替换原文、插入下方和原文/建议 token 级对照；编辑器选区 / 当前段落可通过 BubbleMenu `AI` 动作菜单或 Ctrl/Cmd+J 送入 AI 面板；超过 5000 字会阻止调用；当前项目可用时写入 `ai_messages.scope = 'polish'`；替换前写入 `revisions.source = 'ai_polish'` |
+| **F7 章节校审** | 右侧 AI 面板新增精修 / 校审模式切换；新增 `ai_review_chapter` IPC，读取当前章节正文并要求模型输出结构化 JSON；按逻辑 / 连贯 / 人物口吻 / 伏笔分组标签渲染建议卡；报告写入 `ai_messages.scope = 'review'`；每条建议可复制；支持按严重程度筛选、忽略 / 恢复，并可基于原文短引文定位到正文 |
 | **F13 导出** | SettingsDialog 新增导出页；Rust 侧按章节树顺序导出当前作品；支持 Markdown / Plain Text，支持合并单文件与按章拆分；支持通过系统目录选择器指定导出目录，未选择时写入应用数据目录 `wordforge/exports`；导出完成后可从 toast 或导出页打开导出位置 |
 | **F14 备份** | 已接入备份设置读取/保存与手动立即备份；Rust 侧复制当前 SQLite DB 到指定目录并生成 `wordforge-时间戳.db`；应用启动后若已过本地时间 03:00，当天最多自动备份一次；保留最近 7 份备份 |
 | **F15 CI/CD** | 已新增 `.github/workflows/ci.yml` 与 `release.yml`；CI 在 push/PR 上执行 lint、前端 build、cargo fmt、clippy；release 在 tag `v*` 上生成 Tauri draft release（Windows + macOS universal） |
@@ -47,14 +48,14 @@
 
 | 优先级 | 功能 | 说明 |
 |---|---|---|
-| P0 | F6 AI 精修深化 | 编辑器选区/当前段落接入、BubbleMenu 动作菜单、流式输出、停止 / 继续生成、替换/插入和轻量对照已跑通；下一步进入章节校审或更细粒度 diff |
+| P0 | F7 章节校审深化 | 接受建议并转为正文修改、把忽略状态持久化、提升跨段落定位鲁棒性 |
 | P0 | F15 CI/CD | 首次 Actions 实跑验证；必要时修正 runner 依赖与产物命名 |
 | P1 | F5 编辑器深化 | 场景分割节点 / 注释 mark / IME 兼容测试 |
 | P1 | F3 角色关系深化 | character_relations 表已建；关系成对添加、`@姓名` 引用跳转、插入角色卡到当前段落 |
 | P1 | F4 大纲深化 | 节点 ↔ 章节双向关联；大纲拖拽到章节树自动创建章节（需要新增绑定迁移） |
 | P1 | F9 批注 | annotations 表已建，mark 扩展 + 右侧面板 |
 | P1 | F13 导出深化 | Docx 导出 |
-| P1 | F7 章节校审 | 需先完成 F6 |
+| P1 | F6 AI 上下文包深化 | 可选角色卡 / 大纲节点带入精修与校审 |
 | P2 | F10 全文检索深化 | 优化大稿件排序与高亮 |
 
 ---

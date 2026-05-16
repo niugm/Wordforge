@@ -117,6 +117,25 @@ export interface AiPolishStreamDelta {
   delta: string;
 }
 
+export type AiReviewCategory = "logic" | "continuity" | "voice" | "foreshadowing";
+export type AiReviewSeverity = "high" | "medium" | "low";
+
+export interface AiChapterReviewIssue {
+  category: AiReviewCategory;
+  severity: AiReviewSeverity;
+  location: string;
+  quote: string;
+  problem: string;
+  suggestion: string;
+}
+
+export interface AiChapterReviewResult {
+  provider: AiProvider;
+  model: string;
+  chapterTitle: string;
+  issues: AiChapterReviewIssue[];
+}
+
 export type ExportFormat = "markdown" | "plainText";
 export type ExportMode = "merged" | "chapterFiles";
 

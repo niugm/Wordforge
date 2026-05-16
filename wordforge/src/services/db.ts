@@ -6,6 +6,7 @@ import type {
   Character,
   CharacterInput,
   AiCredentialSettings,
+  AiChapterReviewResult,
   AiPolishKind,
   AiPolishResult,
   AiProvider,
@@ -138,8 +139,7 @@ export const settingsRepo = {
     format: ExportFormat;
     mode: ExportMode;
     targetDir?: string | null;
-  }) =>
-    invoke<ExportResult>("export_project", input),
+  }) => invoke<ExportResult>("export_project", input),
 
   exportChapter: (input: { chapterId: string; format: ExportFormat }) =>
     invoke<ExportResult>("export_chapter", input),
@@ -166,6 +166,9 @@ export const aiRepo = {
 
   cancelPolishStream: (input: { requestId: string }) =>
     invoke<void>("cancel_ai_polish_stream", input),
+
+  reviewChapter: (input: { provider: AiProvider; projectId: string; chapterId: string }) =>
+    invoke<AiChapterReviewResult>("ai_review_chapter", { input }),
 };
 
 export const searchRepo = {

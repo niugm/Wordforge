@@ -85,6 +85,7 @@ pub fn run() {
             commands::ai::ai_polish,
             commands::ai::ai_polish_stream,
             commands::ai::cancel_ai_polish_stream,
+            commands::ai::ai_review_chapter,
             commands::exports::export_project,
             commands::exports::export_chapter,
             commands::search::search_chapter_body,

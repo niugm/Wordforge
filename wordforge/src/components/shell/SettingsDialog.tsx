@@ -4,6 +4,8 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   Bot,
   CheckCircle2,
+  Check,
+  ChevronDown,
   DatabaseBackup,
   FileArchive,
   FileDown,
@@ -26,6 +28,12 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { IconLabel } from "@/components/ui/icon-label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -232,20 +240,34 @@ export function SettingsDialog() {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="字体" htmlFor="editor-font">
-                    <select
-                      id="editor-font"
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                      value={editorPreferences.fontFamily}
-                      onChange={(e) =>
-                        setEditorPreferences({ fontFamily: e.target.value as EditorFontFamily })
-                      }
-                    >
-                      {FONT_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          id="editor-font"
+                          type="button"
+                          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-2.5 text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        >
+                          <span>{fontOptionLabel(editorPreferences.fontFamily)}</span>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {FONT_OPTIONS.map((option) => (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onSelect={() => setEditorPreferences({ fontFamily: option.value })}
+                            className="gap-2"
+                          >
+                            <span className="flex h-4 w-4 items-center justify-center">
+                              {editorPreferences.fontFamily === option.value && (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                            </span>
+                            {option.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </Field>
 
                   <Field label="编辑区宽度" htmlFor="editor-measure">
@@ -345,7 +367,9 @@ export function SettingsDialog() {
                             <span
                               className={cn(
                                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                                active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                                active
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-muted text-muted-foreground",
                               )}
                             >
                               <Bot className="h-4 w-4" />
@@ -804,6 +828,10 @@ function Preview() {
       </div>
     </section>
   );
+}
+
+function fontOptionLabel(value: EditorFontFamily) {
+  return FONT_OPTIONS.find((option) => option.value === value)?.label ?? "无衬线";
 }
 
 function clampNumber(value: number, min: number, max: number, fallback: number) {
