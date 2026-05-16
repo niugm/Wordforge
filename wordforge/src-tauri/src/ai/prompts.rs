@@ -42,13 +42,38 @@ pub fn polish_request(kind: PolishKind, text: &str, instruction: Option<&str>) -
     }
 }
 
-pub fn chapter_review_request(chapter_title: &str, text: &str) -> ChatRequest {
+#[derive(Debug, Clone)]
+pub struct ChapterReviewContext {
+    pub characters: String,
+    pub outlines: String,
+}
+
+pub fn chapter_review_request(
+    chapter_title: &str,
+    text: &str,
+    context: Option<&ChapterReviewContext>,
+) -> ChatRequest {
+    let context_text = context
+        .map(|context| {
+            let mut parts = Vec::new();
+            if !context.characters.trim().is_empty() {
+                parts.push(format!("角色卡摘要：\n{}", context.characters.trim()));
+            }
+            if !context.outlines.trim().is_empty() {
+                parts.push(format!("大纲摘要：\n{}", context.outlines.trim()));
+            }
+            parts.join("\n\n")
+        })
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "无额外上下文。".to_string());
+
     ChatRequest {
         system_prompt: r#"你是中文长篇小说与长文校审编辑。你的任务是指出当前章节中最值得作者注意的问题，而不是替作者重写章节。
 必须遵守：
 - 只基于用户提供的章节文本判断，不编造未提供的情节
 - 优先发现逻辑、连贯、人物口吻、伏笔/设定一致性问题
 - 建议要具体、可执行，避免泛泛而谈
+- 若提供角色卡或大纲摘要，应优先用它们判断人物口吻、设定一致性与伏笔矛盾
 - 输出必须是合法 JSON，不要使用 Markdown，不要添加解释"#.to_string(),
         user_prompt: format!(
             r#"请校审下面这一章，并输出 JSON：
@@ -61,7 +86,8 @@ pub fn chapter_review_request(chapter_title: &str, text: &str) -> ChatRequest {
       "location": "简短位置描述，例如：开头第三段 / 对话中段 / 结尾转折",
       "quote": "章节原文中的短引文，必须能在原文中直接找到，20 到 80 个字",
       "problem": "指出具体问题",
-      "suggestion": "给出可执行修改建议"
+      "suggestion": "给出可执行修改建议",
+      "replacementText": "可直接替换 quote 的改写正文；必须只覆盖 quote 对应片段，不要解释；如果不适合直接替换则留空字符串"
     }}
   ]
 }}
@@ -72,8 +98,12 @@ pub fn chapter_review_request(chapter_title: &str, text: &str) -> ChatRequest {
 - category 只能使用 logic、continuity、voice、foreshadowing
 - severity 只能使用 high、medium、low
 - quote 必须逐字摘自章节正文，不要改写；如果无法确定位置则留空字符串
+- replacementText 必须能自然替换 quote，对应同一段局部文字；不要输出整章或大段无关内容
 
 章节标题：{chapter_title}
+
+可用上下文：
+{context_text}
 
 章节正文：
 {text}"#

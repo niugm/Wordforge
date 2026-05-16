@@ -1,6 +1,6 @@
 pub mod cancel;
 mod openai;
-mod prompts;
+pub mod prompts;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -67,6 +67,8 @@ pub struct AiChapterReviewIssue {
     pub problem: String,
     #[serde(default)]
     pub suggestion: String,
+    #[serde(default)]
+    pub replacement_text: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -180,6 +182,7 @@ pub async fn review_chapter(
     config: LlmConfig,
     chapter_title: String,
     text: String,
+    context: Option<prompts::ChapterReviewContext>,
 ) -> AppResult<AiChapterReviewResult> {
     let chapter_title = chapter_title.trim().to_string();
     let text = text.trim().to_string();
@@ -193,7 +196,7 @@ pub async fn review_chapter(
     }
 
     let provider = provider_for(config)?;
-    let request = prompts::chapter_review_request(&chapter_title, &text);
+    let request = prompts::chapter_review_request(&chapter_title, &text, context.as_ref());
     let raw = provider.complete(request).await?.trim().to_string();
     if raw.is_empty() {
         return Err(AppError::InvalidInput("ai returned empty review".into()));
@@ -277,6 +280,7 @@ fn normalize_review_issue(mut issue: AiChapterReviewIssue) -> Option<AiChapterRe
     issue.quote = issue.quote.trim().to_string();
     issue.problem = issue.problem.trim().to_string();
     issue.suggestion = issue.suggestion.trim().to_string();
+    issue.replacement_text = issue.replacement_text.trim().to_string();
 
     if issue.problem.is_empty() && issue.suggestion.is_empty() {
         None

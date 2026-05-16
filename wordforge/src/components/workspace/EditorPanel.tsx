@@ -222,6 +222,7 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
   const clearAiApplyRequest = useUIStore((s) => s.clearAiApplyRequest);
   const aiReviewLocateRequest = useUIStore((s) => s.aiReviewLocateRequest);
   const clearAiReviewLocateRequest = useUIStore((s) => s.clearAiReviewLocateRequest);
+  const requestAiReviewRewrite = useUIStore((s) => s.requestAiReviewRewrite);
   const setRightCollapsed = useWorkspaceStore((s) => s.setRightCollapsed);
   const editorPreferences = useUIStore((s) => s.editorPreferences);
   const wordCountMode = useUIStore((s) => s.wordCountMode);
@@ -447,11 +448,60 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
       clearAiReviewLocateRequest(request.id);
       return;
     }
+    const replacementText = request.replacementText?.trim();
+    if (replacementText) {
+      const beforeJson = JSON.stringify(editor.getJSON());
+      createRevision.mutate(
+        {
+          chapterId: chapter.id,
+          contentJson: beforeJson,
+          wordCountDelta: 0,
+          source: "review",
+        },
+        {
+          onSuccess: () => {
+            editor.chain().focus().setTextSelection(range).insertContent(replacementText).run();
+            editor.commands.scrollIntoView();
+            const afterWords = getEditorWordCount(editor, wordCountMode);
+            currentWordsRef.current = afterWords;
+            setWordCount(afterWords);
+            setLiveWordCount(afterWords);
+            setLiveScopeWords(getCurrentScopeWords(editor, wordCountMode));
+            setLiveSessionWords(afterWords - sessionStartWordsRef.current);
+            toast.success("已采纳校审建议");
+          },
+          onSettled: () => clearAiReviewLocateRequest(request.id),
+        },
+      );
+      return;
+    }
+
     editor.chain().focus().setTextSelection(range).run();
     editor.commands.scrollIntoView();
+    if (request.instruction) {
+      const text = editor.state.doc.textBetween(range.from, range.to, "\n").trim();
+      requestAiReviewRewrite({
+        chapterId: chapter.id,
+        text,
+        from: range.from,
+        to: range.to,
+        instruction: request.instruction,
+      });
+    }
     toast.success("已定位到建议原文");
     clearAiReviewLocateRequest(request.id);
-  }, [aiReviewLocateRequest, chapter.id, clearAiReviewLocateRequest, editor]);
+  }, [
+    aiReviewLocateRequest,
+    chapter.id,
+    clearAiReviewLocateRequest,
+    createRevision,
+    editor,
+    requestAiReviewRewrite,
+    setLiveScopeWords,
+    setLiveSessionWords,
+    setLiveWordCount,
+    wordCountMode,
+  ]);
 
   useEffect(() => {
     if (!editor) return;

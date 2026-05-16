@@ -4,9 +4,10 @@ use tauri::{Emitter, State, Window};
 use ulid::Ulid;
 
 use crate::ai::cancel::AiStreamCancels;
+use crate::ai::prompts::ChapterReviewContext;
 use crate::ai::{self, AiChapterReviewResult, AiPolishResult, LlmConfig, PolishKind};
 use crate::db::now_ms;
-use crate::db::{chapters, settings};
+use crate::db::{chapters, characters, outlines, settings};
 use crate::error::{AppError, AppResult};
 
 #[tauri::command]
@@ -165,6 +166,7 @@ pub async fn ai_review_chapter(
     }
     let content_json = chapters::get_content(pool.inner(), &chapter_id).await?;
     let chapter_text = chapters::extract_tiptap_text(&content_json);
+    let context = build_chapter_review_context(pool.inner(), &project_id).await?;
     let (credential, api_key) =
         settings::load_ai_credential_with_secret(pool.inner(), input.provider).await?;
     let result = ai::review_chapter(
@@ -176,12 +178,101 @@ pub async fn ai_review_chapter(
         },
         chapter.title,
         chapter_text,
+        context,
     )
     .await?;
 
     save_review_messages(pool.inner(), &project_id, &chapter_id, &result).await?;
 
     Ok(result)
+}
+
+async fn build_chapter_review_context(
+    pool: &SqlitePool,
+    project_id: &str,
+) -> AppResult<Option<ChapterReviewContext>> {
+    let characters = characters::list_by_project(pool, project_id).await?;
+    let outlines = outlines::list_by_project(pool, project_id).await?;
+    let characters = summarize_characters(&characters);
+    let outlines = summarize_outlines(&outlines);
+    if characters.is_empty() && outlines.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(ChapterReviewContext {
+            characters,
+            outlines,
+        }))
+    }
+}
+
+fn summarize_characters(characters: &[characters::Character]) -> String {
+    characters
+        .iter()
+        .take(12)
+        .filter_map(|character| {
+            let mut parts = vec![character.name.trim().to_string()];
+            if let Some(alias) = character
+                .alias
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+            {
+                parts.push(format!("别名：{alias}"));
+            }
+            if let Some(role_type) = character
+                .role_type
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+            {
+                parts.push(format!("身份：{role_type}"));
+            }
+            let profile = truncate_chars(character.profile_md.trim(), 180);
+            if !profile.is_empty() {
+                parts.push(format!("画像：{profile}"));
+            }
+            if parts.first().is_some_and(|name| name.is_empty()) {
+                None
+            } else {
+                Some(format!("- {}", parts.join("；")))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn summarize_outlines(outlines: &[outlines::OutlineNode]) -> String {
+    outlines
+        .iter()
+        .take(16)
+        .filter_map(|outline| {
+            let title = outline.title.trim();
+            if title.is_empty() {
+                return None;
+            }
+            let content = truncate_chars(outline.content_md.trim(), 160);
+            let status = match outline.status.as_str() {
+                "idea" => "构思",
+                "drafting" => "撰写中",
+                "done" => "已完成",
+                _ => outline.status.as_str(),
+            };
+            if content.is_empty() {
+                Some(format!("- {title}（{status}）"))
+            } else {
+                Some(format!("- {title}（{status}）：{content}"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn truncate_chars(value: &str, max_chars: usize) -> String {
+    let mut output: String = value.chars().take(max_chars).collect();
+    if value.chars().count() > max_chars {
+        output.push('…');
+    }
+    output
 }
 
 fn build_stream_instruction(

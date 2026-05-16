@@ -43,7 +43,20 @@ export type AiReviewLocateRequest = {
   id: number;
   chapterId: string;
   quote: string;
+  instruction?: string;
+  replacementText?: string;
 };
+
+export type AiReviewRewriteRequest = {
+  id: number;
+  chapterId: string;
+  text: string;
+  from: number;
+  to: number;
+  instruction: string;
+};
+
+export type AiReviewIgnoredIssues = Record<string, string[]>;
 
 const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
   fontFamily: "sans",
@@ -67,6 +80,8 @@ type UIState = {
   aiEditorContext: AiEditorContext | null;
   aiApplyRequest: AiApplyRequest | null;
   aiReviewLocateRequest: AiReviewLocateRequest | null;
+  aiReviewRewriteRequest: AiReviewRewriteRequest | null;
+  aiReviewIgnoredIssues: AiReviewIgnoredIssues;
 
   setTheme: (theme: Theme) => void;
   setEditorPreferences: (prefs: Partial<EditorPreferences>) => void;
@@ -88,6 +103,10 @@ type UIState = {
   clearAiApplyRequest: (id: number) => void;
   requestAiReviewLocate: (request: Omit<AiReviewLocateRequest, "id">) => void;
   clearAiReviewLocateRequest: (id: number) => void;
+  requestAiReviewRewrite: (request: Omit<AiReviewRewriteRequest, "id">) => void;
+  clearAiReviewRewriteRequest: (id: number) => void;
+  toggleAiReviewIgnoredIssue: (chapterId: string, issueKey: string) => void;
+  pruneAiReviewIgnoredIssues: (chapterId: string, issueKeys: string[]) => void;
 };
 
 export const useUIStore = create<UIState>()(
@@ -107,6 +126,8 @@ export const useUIStore = create<UIState>()(
       aiEditorContext: null,
       aiApplyRequest: null,
       aiReviewLocateRequest: null,
+      aiReviewRewriteRequest: null,
+      aiReviewIgnoredIssues: {},
 
       setTheme: (theme) => set({ theme }),
       setEditorPreferences: (prefs) =>
@@ -138,6 +159,44 @@ export const useUIStore = create<UIState>()(
           aiReviewLocateRequest:
             state.aiReviewLocateRequest?.id === id ? null : state.aiReviewLocateRequest,
         })),
+      requestAiReviewRewrite: (request) =>
+        set({
+          aiReviewRewriteRequest: { ...request, id: Date.now() },
+          aiPanelTab: "ai",
+        }),
+      clearAiReviewRewriteRequest: (id) =>
+        set((state) => ({
+          aiReviewRewriteRequest:
+            state.aiReviewRewriteRequest?.id === id ? null : state.aiReviewRewriteRequest,
+        })),
+      toggleAiReviewIgnoredIssue: (chapterId, issueKey) =>
+        set((state) => {
+          const current = new Set(state.aiReviewIgnoredIssues[chapterId] ?? []);
+          if (current.has(issueKey)) {
+            current.delete(issueKey);
+          } else {
+            current.add(issueKey);
+          }
+          return {
+            aiReviewIgnoredIssues: {
+              ...state.aiReviewIgnoredIssues,
+              [chapterId]: [...current],
+            },
+          };
+        }),
+      pruneAiReviewIgnoredIssues: (chapterId, issueKeys) =>
+        set((state) => {
+          const allowed = new Set(issueKeys);
+          const current = state.aiReviewIgnoredIssues[chapterId] ?? [];
+          const next = current.filter((issueKey) => allowed.has(issueKey));
+          if (next.length === current.length) return state;
+          return {
+            aiReviewIgnoredIssues: {
+              ...state.aiReviewIgnoredIssues,
+              [chapterId]: next,
+            },
+          };
+        }),
     }),
     {
       name: "wordforge-ui",
@@ -151,6 +210,7 @@ export const useUIStore = create<UIState>()(
             ...(p.editorPreferences ?? {}),
           },
           wordCountMode: p.wordCountMode ?? "characters",
+          aiReviewIgnoredIssues: p.aiReviewIgnoredIssues ?? {},
         } as UIState;
       },
       partialize: (state) => ({
@@ -158,6 +218,7 @@ export const useUIStore = create<UIState>()(
         editorPreferences: state.editorPreferences,
         wordCountMode: state.wordCountMode,
         focusMode: state.focusMode,
+        aiReviewIgnoredIssues: state.aiReviewIgnoredIssues,
       }),
     },
   ),

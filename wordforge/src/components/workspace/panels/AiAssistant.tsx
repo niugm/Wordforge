@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import { useParams } from "react-router";
 import { listen } from "@tauri-apps/api/event";
 import {
   Check,
   ChevronDown,
+  CircleCheck,
   Clipboard,
   Copy,
   FileEdit,
@@ -93,8 +94,14 @@ export function AiAssistant() {
   const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
   const storedChapterId = useWorkspaceStore((state) => state.currentChapterId);
   const aiEditorContext = useUIStore((state) => state.aiEditorContext);
+  const setAiEditorContext = useUIStore((state) => state.setAiEditorContext);
   const requestAiApply = useUIStore((state) => state.requestAiApply);
   const requestAiReviewLocate = useUIStore((state) => state.requestAiReviewLocate);
+  const aiReviewRewriteRequest = useUIStore((state) => state.aiReviewRewriteRequest);
+  const clearAiReviewRewriteRequest = useUIStore((state) => state.clearAiReviewRewriteRequest);
+  const aiReviewIgnoredIssues = useUIStore((state) => state.aiReviewIgnoredIssues);
+  const toggleAiReviewIgnoredIssue = useUIStore((state) => state.toggleAiReviewIgnoredIssue);
+  const pruneAiReviewIgnoredIssues = useUIStore((state) => state.pruneAiReviewIgnoredIssues);
   const [mode, setMode] = useState<"polish" | "review">("polish");
   const [provider, setProvider] = useState<AiProvider>("openai");
   const [kind, setKind] = useState<AiPolishKind>("condense");
@@ -110,9 +117,9 @@ export function AiAssistant() {
     "all" | AiChapterReviewIssue["severity"]
   >("all");
   const [showIgnoredReviewIssues, setShowIgnoredReviewIssues] = useState(false);
-  const [ignoredReviewIssues, setIgnoredReviewIssues] = useState<Set<string>>(() => new Set());
   const activeRequestIdRef = useRef<string | null>(null);
   const streamTextRef = useRef("");
+  const processedAiReviewRewriteIdRef = useRef<number | null>(null);
 
   const activeCredential = credentials.data?.find((item) => item.provider === provider);
   const configuredProviders = useMemo(
@@ -163,6 +170,10 @@ export function AiAssistant() {
       ? "先选择一个需要校审的章节"
       : null;
   const reviewIssues = reviewResult?.issues ?? [];
+  const ignoredReviewIssues = useMemo(
+    () => new Set(activeChapterId ? (aiReviewIgnoredIssues[activeChapterId] ?? []) : []),
+    [activeChapterId, aiReviewIgnoredIssues],
+  );
   const visibleReviewIssues = reviewIssues.filter((issue, index) => {
     const issueKey = getReviewIssueKey(issue, index);
     const severityMatches =
@@ -283,7 +294,10 @@ export function AiAssistant() {
     setReviewResult(result);
     setReviewSeverityFilter("all");
     setShowIgnoredReviewIssues(false);
-    setIgnoredReviewIssues(new Set());
+    pruneAiReviewIgnoredIssues(
+      activeChapterId!,
+      result.issues.map((issue, index) => getReviewIssueKey(issue, index)),
+    );
   }
 
   async function copyReviewIssue(issue: AiChapterReviewIssue) {
@@ -305,18 +319,71 @@ export function AiAssistant() {
     });
   }
 
-  function toggleReviewIssueIgnored(issue: AiChapterReviewIssue, index: number) {
-    const issueKey = getReviewIssueKey(issue, index);
-    setIgnoredReviewIssues((current) => {
-      const next = new Set(current);
-      if (next.has(issueKey)) {
-        next.delete(issueKey);
-      } else {
-        next.add(issueKey);
-      }
-      return next;
+  function rewriteReviewIssue(issue: AiChapterReviewIssue) {
+    if (!activeChapterId) return;
+    if (!issue.quote.trim()) {
+      toast.info("这条建议没有可改写的原文引文");
+      return;
+    }
+    requestAiReviewLocate({
+      chapterId: activeChapterId,
+      quote: issue.quote,
+      instruction: buildReviewRewriteInstruction(issue),
     });
   }
+
+  function acceptReviewIssue(issue: AiChapterReviewIssue) {
+    if (!activeChapterId) return;
+    if (!issue.quote.trim()) {
+      toast.info("这条建议没有可替换的原文引文");
+      return;
+    }
+    if (!issue.replacementText.trim()) {
+      toast.info("这条建议没有可直接采纳的改写正文");
+      return;
+    }
+    requestAiReviewLocate({
+      chapterId: activeChapterId,
+      quote: issue.quote,
+      replacementText: issue.replacementText,
+    });
+  }
+
+  function toggleReviewIssueIgnored(issue: AiChapterReviewIssue, index: number) {
+    if (!activeChapterId) return;
+    const issueKey = getReviewIssueKey(issue, index);
+    toggleAiReviewIgnoredIssue(activeChapterId, issueKey);
+  }
+
+  useEffect(() => {
+    if (
+      !aiReviewRewriteRequest ||
+      processedAiReviewRewriteIdRef.current === aiReviewRewriteRequest.id
+    ) {
+      return;
+    }
+    processedAiReviewRewriteIdRef.current = aiReviewRewriteRequest.id;
+    setMode("polish");
+    setKind("free");
+    setDetachedContextId(null);
+    setInstruction(aiReviewRewriteRequest.instruction);
+    setStreamText("");
+    streamTextRef.current = "";
+    setCompletedResult(null);
+    setInterruptedResult(null);
+    setResultView("result");
+    setAiEditorContext({
+      chapterId: aiReviewRewriteRequest.chapterId,
+      source: "selection",
+      preferredKind: "free",
+      text: aiReviewRewriteRequest.text,
+      from: aiReviewRewriteRequest.from,
+      to: aiReviewRewriteRequest.to,
+      capturedAt: Date.now(),
+    });
+    clearAiReviewRewriteRequest(aiReviewRewriteRequest.id);
+    toast.success("已送入精修，可生成候选改写");
+  }, [aiReviewRewriteRequest, clearAiReviewRewriteRequest, setAiEditorContext]);
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4 text-sm">
@@ -737,6 +804,8 @@ export function AiAssistant() {
                         ignored={ignored}
                         onCopy={() => copyReviewIssue(issue)}
                         onLocate={() => locateReviewIssue(issue)}
+                        onRewrite={() => rewriteReviewIssue(issue)}
+                        onAccept={() => acceptReviewIssue(issue)}
                         onToggleIgnored={() => toggleReviewIssueIgnored(issue, originalIndex)}
                       />
                     );
@@ -815,12 +884,16 @@ function ReviewIssueCard({
   ignored,
   onCopy,
   onLocate,
+  onRewrite,
+  onAccept,
   onToggleIgnored,
 }: {
   issue: AiChapterReviewIssue;
   ignored: boolean;
   onCopy: () => void;
   onLocate: () => void;
+  onRewrite: () => void;
+  onAccept: () => void;
   onToggleIgnored: () => void;
 }) {
   return (
@@ -845,6 +918,30 @@ function ReviewIssueCard({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2"
+            onClick={onAccept}
+            disabled={!issue.quote.trim() || !issue.replacementText.trim()}
+            title={
+              issue.quote.trim() && issue.replacementText.trim()
+                ? "采纳建议"
+                : "缺少可直接采纳的改写"
+            }
+          >
+            <CircleCheck className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2"
+            onClick={onRewrite}
+            disabled={!issue.quote.trim()}
+            title={issue.quote.trim() ? "按建议改写" : "缺少原文引文"}
+          >
+            <Wand2 className="h-3.5 w-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -875,6 +972,11 @@ function ReviewIssueCard({
       {issue.quote && (
         <p className="rounded border-l-2 border-primary/30 bg-background/70 px-2 py-1 text-xs leading-5 text-muted-foreground">
           {issue.quote}
+        </p>
+      )}
+      {issue.replacementText && (
+        <p className="rounded border-l-2 border-emerald-500/30 bg-emerald-500/5 px-2 py-1 text-xs leading-5 text-emerald-700 dark:text-emerald-300">
+          {issue.replacementText}
         </p>
       )}
       <div className="space-y-1 text-sm leading-6">
@@ -1098,6 +1200,20 @@ function getReviewIssueKey(issue: AiChapterReviewIssue, index: number) {
   return [index, issue.category, issue.severity, issue.location, issue.quote, issue.problem].join(
     "::",
   );
+}
+
+function buildReviewRewriteInstruction(issue: AiChapterReviewIssue) {
+  return [
+    "请根据这条章节校审建议改写所选原文。",
+    `问题类型：${reviewCategoryLabel(issue.category)}`,
+    `严重程度：${reviewSeverityLabel(issue.severity)}`,
+    issue.location ? `位置：${issue.location}` : null,
+    `问题：${issue.problem}`,
+    `建议：${issue.suggestion}`,
+    "要求：只输出改写后的正文；保留原有叙事视角、人物关系和核心事件，不要解释。",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function providerLabel(provider: AiProvider) {

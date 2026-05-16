@@ -127,6 +127,7 @@ export interface AiChapterReviewIssue {
   quote: string;
   problem: string;
   suggestion: string;
+  replacementText: string;
 }
 
 export interface AiChapterReviewResult {
