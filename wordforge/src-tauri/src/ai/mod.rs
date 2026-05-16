@@ -1,3 +1,4 @@
+pub mod cancel;
 mod openai;
 mod prompts;
 
@@ -32,6 +33,14 @@ pub struct ChatRequest {
     pub user_prompt: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct AiPolishStreamStart {
+    pub provider: String,
+    pub model: String,
+    pub kind: String,
+    pub original_text: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiPolishResult {
@@ -42,9 +51,18 @@ pub struct AiPolishResult {
     pub result_text: String,
 }
 
+pub type StreamDeltaHandler = Box<dyn FnMut(String) -> AppResult<()> + Send>;
+pub type StreamCancelCheck = Box<dyn Fn() -> AppResult<bool> + Send + Sync>;
+
 #[async_trait]
 trait LlmProvider {
     async fn complete(&self, request: ChatRequest) -> AppResult<String>;
+    async fn complete_stream(
+        &self,
+        request: ChatRequest,
+        on_delta: StreamDeltaHandler,
+        is_cancelled: StreamCancelCheck,
+    ) -> AppResult<String>;
     fn provider_name(&self) -> &'static str;
     fn model_name(&self) -> &str;
 }
@@ -77,6 +95,50 @@ pub async fn polish_text(
         model: provider.model_name().to_string(),
         kind: polish_kind_code(kind).to_string(),
         original_text: text,
+        result_text,
+    })
+}
+
+pub async fn polish_text_stream(
+    config: LlmConfig,
+    kind: PolishKind,
+    text: String,
+    instruction: Option<String>,
+    on_delta: StreamDeltaHandler,
+    is_cancelled: StreamCancelCheck,
+) -> AppResult<AiPolishResult> {
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Err(AppError::InvalidInput("polish text is required".into()));
+    }
+    if text.chars().count() > MAX_POLISH_TEXT_CHARS {
+        return Err(AppError::InvalidInput(
+            "selected text is too long; please polish it in smaller sections".into(),
+        ));
+    }
+
+    let provider = provider_for(config)?;
+    let start = AiPolishStreamStart {
+        provider: provider.provider_name().to_string(),
+        model: provider.model_name().to_string(),
+        kind: polish_kind_code(kind).to_string(),
+        original_text: text.clone(),
+    };
+    let request = prompts::polish_request(kind, &text, instruction.as_deref());
+    let result_text = provider
+        .complete_stream(request, on_delta, is_cancelled)
+        .await?
+        .trim()
+        .to_string();
+    if result_text.is_empty() {
+        return Err(AppError::InvalidInput("ai returned empty content".into()));
+    }
+
+    Ok(AiPolishResult {
+        provider: start.provider,
+        model: start.model,
+        kind: start.kind,
+        original_text: start.original_text,
         result_text,
     })
 }

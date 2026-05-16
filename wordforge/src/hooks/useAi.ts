@@ -18,3 +18,23 @@ export function useAiPolish() {
     },
   });
 }
+
+export function useAiPolishStream() {
+  return useMutation({
+    mutationFn: aiRepo.polishStream,
+    onError: (error) => {
+      const message = errMsg(error);
+      if (message.includes("ai stream cancelled")) return;
+      toast.error(`AI 流式精修失败：${message}`);
+    },
+  });
+}
+
+export function useCancelAiPolishStream() {
+  return useMutation({
+    mutationFn: aiRepo.cancelPolishStream,
+    onError: (error) => {
+      toast.error(`停止生成失败：${errMsg(error)}`);
+    },
+  });
+}

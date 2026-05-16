@@ -153,6 +153,19 @@ export const aiRepo = {
     instruction?: string | null;
     projectId?: string | null;
   }) => invoke<AiPolishResult>("ai_polish", input),
+
+  polishStream: (input: {
+    requestId: string;
+    provider: AiProvider;
+    kind: AiPolishKind;
+    text: string;
+    instruction?: string | null;
+    projectId?: string | null;
+    continueFrom?: string | null;
+  }) => invoke<AiPolishResult>("ai_polish_stream", { input }),
+
+  cancelPolishStream: (input: { requestId: string }) =>
+    invoke<void>("cancel_ai_polish_stream", input),
 };
 
 export const searchRepo = {

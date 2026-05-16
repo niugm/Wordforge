@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { WordCountMode } from "@/lib/wordCount";
+import type { AiPolishKind } from "@/types/db";
 
 export type Theme = "light" | "dark" | "eyecare";
 export type EditorFontFamily = "sans" | "serif" | "mono";
@@ -20,6 +21,7 @@ export type LiveScopeWords = {
 export type AiEditorContext = {
   chapterId: string;
   source: "selection" | "paragraph";
+  preferredKind?: AiPolishKind;
   text: string;
   from: number;
   to: number;

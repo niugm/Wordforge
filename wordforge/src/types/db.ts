@@ -112,6 +112,11 @@ export interface AiPolishResult {
   resultText: string;
 }
 
+export interface AiPolishStreamDelta {
+  requestId: string;
+  delta: string;
+}
+
 export type ExportFormat = "markdown" | "plainText";
 export type ExportMode = "merged" | "chapterFiles";
 

@@ -14,10 +14,17 @@ import {
   Sparkles,
   Strikethrough,
   Underline as UnderlineIcon,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EditorToolbar } from "@/components/workspace/EditorToolbar";
 import {
   useChapter,
@@ -30,11 +37,23 @@ import { countWritingText, WORD_COUNT_MODE_LABELS } from "@/lib/wordCount";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/useUIStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
-import type { Chapter, ChapterStatus } from "@/types/db";
+import type { AiPolishKind, Chapter, ChapterStatus } from "@/types/db";
 
 const AUTOSAVE_MS = 500;
 const IDLE_SESSION_END_MS = 30_000;
 const MAX_AI_TEXT_CHARS = 5000;
+
+const AI_BUBBLE_ACTIONS: Array<{
+  kind: AiPolishKind;
+  label: string;
+  description: string;
+}> = [
+  { kind: "condense", label: "凝练", description: "删去拖沓，保留信息" },
+  { kind: "expand", label: "扩写", description: "补足细节和节奏" },
+  { kind: "describe", label: "描写", description: "增强感官画面" },
+  { kind: "tone", label: "语气", description: "稳定叙事质感" },
+  { kind: "free", label: "自由指令", description: "带着选区去右侧填写要求" },
+];
 
 const STATUS_META: Record<
   ChapterStatus,
@@ -121,12 +140,13 @@ function getCurrentScopeWords(
   return { label: "本段" as const, words: countWritingText($from.parent.textContent, mode) };
 }
 
-function getCurrentAiContext(editor: Editor, chapterId: string) {
+function getCurrentAiContext(editor: Editor, chapterId: string, preferredKind?: AiPolishKind) {
   const { from, to, empty, $from } = editor.state.selection;
   if (!empty) {
     return {
       chapterId,
       source: "selection" as const,
+      preferredKind,
       text: editor.state.doc.textBetween(from, to, "\n").trim(),
       from,
       to,
@@ -139,6 +159,7 @@ function getCurrentAiContext(editor: Editor, chapterId: string) {
   return {
     chapterId,
     source: "paragraph" as const,
+    preferredKind,
     text: $from.parent.textContent.trim(),
     from: paragraphFrom,
     to: paragraphTo,
@@ -229,9 +250,9 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
     }, IDLE_SESSION_END_MS);
   }
 
-  function sendScopeToAi(editorInstance: Editor | null) {
+  function sendScopeToAi(editorInstance: Editor | null, preferredKind?: AiPolishKind) {
     if (!editorInstance) return;
-    const context = getCurrentAiContext(editorInstance, chapter.id);
+    const context = getCurrentAiContext(editorInstance, chapter.id, preferredKind);
     if (!context.text) {
       toast.info("当前段落没有可精修的正文");
       return;
@@ -474,9 +495,37 @@ function ChapterEditor({ chapter, initialContent }: { chapter: Chapter; initialC
               <Strikethrough className="h-3.5 w-3.5" />
             </BubbleBtn>
             <span className="mx-0.5 h-5 w-px bg-border" />
-            <BubbleBtn active={false} title="送入 AI 精修" onClick={() => sendScopeToAi(editor)}>
-              <Sparkles className="h-3.5 w-3.5" />
-            </BubbleBtn>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs"
+                  title="AI 精修"
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {AI_BUBBLE_ACTIONS.map((action) => (
+                  <DropdownMenuItem
+                    key={action.kind}
+                    onSelect={() => sendScopeToAi(editor, action.kind)}
+                    className="items-start gap-2 py-2"
+                  >
+                    <Wand2 className="mt-0.5 h-3.5 w-3.5 text-primary" />
+                    <span className="min-w-0">
+                      <span className="block text-xs font-medium">{action.label}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {action.description}
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </BubbleMenu>
         )}
         <EditorContent editor={editor} />

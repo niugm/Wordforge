@@ -27,6 +27,7 @@ pub fn run() {
                 })?;
             app.manage(pool);
             app.manage(app_data_dir);
+            app.manage(ai::cancel::AiStreamCancels::default());
             let pool = app.state::<sqlx::SqlitePool>().inner().clone();
             let app_data_dir = app.state::<std::path::PathBuf>().inner().clone();
             tauri::async_runtime::spawn(async move {
@@ -82,6 +83,8 @@ pub fn run() {
             commands::settings::save_ai_credential,
             commands::settings::delete_ai_credential,
             commands::ai::ai_polish,
+            commands::ai::ai_polish_stream,
+            commands::ai::cancel_ai_polish_stream,
             commands::exports::export_project,
             commands::exports::export_chapter,
             commands::search::search_chapter_body,
